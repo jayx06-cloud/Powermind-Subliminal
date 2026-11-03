@@ -1,0 +1,386 @@
+name: Build PowerMind APK
+
+on:
+  push:
+    branches: [ "**" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.11.1
+
+      - name: Generate Android Project Files
+        run: |
+          mkdir -p app/src/main/java/com/powermind/subliminal
+
+          # 1. settings.gradle.kts
+          cat << 'EOF' > settings.gradle.kts
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "PowerMind"
+          include(":app")
+          EOF
+
+          # 2. build.gradle.kts
+          cat << 'EOF' > build.gradle.kts
+          plugins {
+              id("com.android.application") version "8.7.2" apply false
+              id("org.jetbrains.kotlin.android") version "1.9.22" apply false
+          }
+          EOF
+
+          # 3. app/build.gradle.kts
+          cat << 'EOF' > app/build.gradle.kts
+          plugins {
+              id("com.android.application")
+              id("org.jetbrains.kotlin.android")
+          }
+
+          android {
+              namespace = "com.powermind.subliminal"
+              compileSdk = 35
+
+              defaultConfig {
+                  applicationId = "com.powermind.subliminal"
+                  minSdk = 26
+                  targetSdk = 35
+                  versionCode = 1
+                  versionName = "1.0.0"
+              }
+
+              buildTypes {
+                  release {
+                      isMinifyEnabled = false
+                  }
+              }
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+              kotlinOptions {
+                  jvmTarget = "17"
+              }
+              buildFeatures {
+                  compose = true
+              }
+              composeOptions {
+                  kotlinCompilerExtensionVersion = "1.5.8"
+              }
+          }
+
+          dependencies {
+              implementation("androidx.core:core-ktx:1.15.0")
+              implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
+              implementation("androidx.activity:activity-compose:1.9.3")
+              implementation(platform("androidx.compose:compose-bom:2024.11.00"))
+              implementation("androidx.compose.ui:ui")
+              implementation("androidx.compose.ui:ui-graphics")
+              implementation("androidx.compose.material3:material3")
+          }
+          EOF
+
+          # 4. AndroidManifest.xml
+          cat << 'EOF' > app/src/main/AndroidManifest.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+              <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+              <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+              <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+              <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+              <application
+                  android:allowBackup="true"
+                  android:label="PowerMind"
+                  android:supportsRtl="true"
+                  android:theme="@android:style/Theme.Material.NoActionBar">
+
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true"
+                      android:configChanges="orientation|screenSize">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+
+                  <service
+                      android:name=".SubliminalOverlayService"
+                      android:exported="false"
+                      android:foregroundServiceType="specialUse">
+                      <property
+                          android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                          android:value="Subliminal affirmations overlay" />
+                  </service>
+              </application>
+          </manifest>
+          EOF
+
+          # 5. SubliminalOverlayService.kt
+          cat << 'EOF' > app/src/main/java/com/powermind/subliminal/SubliminalOverlayService.kt
+          package com.powermind.subliminal
+
+          import android.app.NotificationChannel
+          import android.app.NotificationManager
+          import android.app.Service
+          import android.content.Context
+          import android.content.Intent
+          import android.graphics.Color
+          import android.graphics.PixelFormat
+          import android.os.Build
+          import android.os.Handler
+          import android.os.IBinder
+          import android.os.Looper
+          import android.text.SpannableString
+          import android.text.Spanned
+          import android.text.style.ForegroundColorSpan
+          import android.view.Choreographer
+          import android.view.Gravity
+          import android.view.View
+          import android.view.WindowManager
+          import android.widget.TextView
+          import androidx.core.app.NotificationCompat
+          import kotlin.random.Random
+
+          class SubliminalOverlayService : Service() {
+
+              private var windowManager: WindowManager? = null
+              private var overlayView: TextView? = null
+              private var params: WindowManager.LayoutParams? = null
+              private val handler = Handler(Looper.getMainLooper())
+              private var isRunning = false
+
+              private var phrases: List<String> = emptyList()
+              private var intervalMs: Long = 400
+              private var durationMs: Long = 10
+              private var contrastAlpha: Float = 0.05f
+              private var useRandomPlacement: Boolean = true
+              private var useMirroredSigil: Boolean = false
+
+              override fun onBind(intent: Intent?): IBinder? = null
+
+              override fun onCreate() {
+                  super.onCreate()
+                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                      val channel = NotificationChannel(
+                          "powermind_fgs",
+                          "PowerMind Flash Service",
+                          NotificationManager.IMPORTANCE_LOW
+                      )
+                      getSystemService(NotificationManager::class.java)?.createNotificationChannel(channel)
+                  }
+
+                  val notification = NotificationCompat.Builder(this, "powermind_fgs")
+                      .setContentTitle("PowerMind Active")
+                      .setContentText("Subconscious registration active in background")
+                      .setSmallIcon(android.R.drawable.ic_dialog_info)
+                      .build()
+
+                  startForeground(1001, notification)
+                  setupOverlay()
+              }
+
+              private fun setupOverlay() {
+                  windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+                  val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                      WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                  } else {
+                      @Suppress("DEPRECATION")
+                      WindowManager.LayoutParams.TYPE_PHONE
+                  }
+
+                  params = WindowManager.LayoutParams(
+                      WindowManager.LayoutParams.WRAP_CONTENT,
+                      WindowManager.LayoutParams.WRAP_CONTENT,
+                      type,
+                      WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                              WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                              WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                      PixelFormat.TRANSLUCENT
+                  ).apply {
+                      gravity = Gravity.CENTER
+                  }
+
+                  overlayView = TextView(this).apply {
+                      textSize = 28f
+                      setTextColor(Color.WHITE)
+                      visibility = View.GONE
+                  }
+
+                  windowManager?.addView(overlayView, params)
+              }
+
+              override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+                  intent?.let {
+                      phrases = it.getStringArrayExtra("PHRASES")?.toList() ?: emptyList()
+                      intervalMs = it.getLongExtra("INTERVAL_MS", 400L)
+                      durationMs = it.getLongExtra("DURATION_MS", 10L)
+                      contrastAlpha = it.getFloatExtra("CONTRAST_ALPHA", 0.05f)
+                      useRandomPlacement = it.getBooleanExtra("RANDOM_POS", true)
+                      useMirroredSigil = it.getBooleanExtra("MIRRORED_SIGIL", false)
+
+                      if (!isRunning && phrases.isNotEmpty()) {
+                          isRunning = true
+                          scheduleNext()
+                      }
+                  }
+                  return START_STICKY
+              }
+
+              private fun scheduleNext() {
+                  if (!isRunning || phrases.isEmpty()) return
+                  handler.postDelayed({ executeFlash() }, intervalMs)
+              }
+
+              private fun executeFlash() {
+                  val phrase = phrases.random()
+                  val display = overlayView ?: return
+
+                  if (useMirroredSigil) {
+                      val reversed = phrase.reversed()
+                      val combined = "$phrase | $reversed"
+                      val span = SpannableString(combined)
+                      span.setSpan(
+                          ForegroundColorSpan(Color.RED),
+                          phrase.length + 3,
+                          combined.length,
+                          Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                      )
+                      display.text = span
+                  } else {
+                      display.text = phrase
+                  }
+
+                  display.alpha = contrastAlpha
+
+                  if (useRandomPlacement) {
+                      val metrics = resources.displayMetrics
+                      params?.x = Random.nextInt(-metrics.widthPixels / 3, metrics.widthPixels / 3)
+                      params?.y = Random.nextInt(-metrics.heightPixels / 4, metrics.heightPixels / 4)
+                      windowManager?.updateViewLayout(display, params)
+                  }
+
+                  display.visibility = View.VISIBLE
+
+                  if (durationMs <= 16) {
+                      Choreographer.getInstance().postFrameCallback {
+                          display.visibility = View.GONE
+                          scheduleNext()
+                      }
+                  } else {
+                      handler.postDelayed({
+                          display.visibility = View.GONE
+                          scheduleNext()
+                      }, durationMs)
+                  }
+              }
+
+              override fun onDestroy() {
+                  super.onDestroy()
+                  isRunning = false
+                  handler.removeCallbacksAndMessages(null)
+                  overlayView?.let { windowManager?.removeView(it) }
+              }
+          }
+          EOF
+
+          # 6. MainActivity.kt
+          cat << 'EOF' > app/src/main/java/com/powermind/subliminal/MainActivity.kt
+          package com.powermind.subliminal
+
+          import android.content.Intent
+          import android.media.AudioAttributes
+          import android.media.AudioFormat
+          import android.media.AudioTrack
+          import android.net.Uri
+          import android.os.Build
+          import android.os.Bundle
+          import android.provider.Settings
+          import androidx.activity.ComponentActivity
+          import androidx.activity.compose.setContent
+          import androidx.compose.animation.core.*
+          import androidx.compose.foundation.Canvas
+          import androidx.compose.foundation.background
+          import androidx.compose.foundation.clickable
+          import androidx.compose.foundation.layout.*
+          import androidx.compose.foundation.lazy.LazyColumn
+          import androidx.compose.foundation.shape.RoundedCornerShape
+          import androidx.compose.material3.*
+          import androidx.compose.runtime.*
+          import androidx.compose.ui.Alignment
+          import androidx.compose.ui.Modifier
+          import androidx.compose.ui.draw.rotate
+          import androidx.compose.ui.geometry.Offset
+          import androidx.compose.ui.graphics.Color
+          import androidx.compose.ui.graphics.Path
+          import androidx.compose.ui.graphics.drawscope.Stroke
+          import androidx.compose.ui.platform.LocalContext
+          import androidx.compose.ui.text.font.FontFamily
+          import androidx.compose.ui.text.font.FontWeight
+          import androidx.compose.ui.text.style.TextAlign
+          import androidx.compose.ui.unit.dp
+          import androidx.compose.ui.unit.sp
+          import kotlinx.coroutines.delay
+          import kotlin.concurrent.thread
+          import kotlin.math.cos
+          import kotlin.math.sin
+
+          enum class VowelMode { REMOVE_ALL_VOWELS, KEEP_A_AND_I, SIGIL_MAGIC, RAW_TEXT }
+
+          object SigilEngine {
+              fun processPhrase(text: String, mode: VowelMode): String {
+                  val upper = text.uppercase().trim()
+                  return when (mode) {
+                      VowelMode.REMOVE_ALL_VOWELS -> upper.replace(Regex("[AEIOU]"), "")
+                      VowelMode.KEEP_A_AND_I -> upper.replace(Regex("[EOU]"), "")
+                      VowelMode.SIGIL_MAGIC -> {
+                          val noVowels = upper.replace(Regex("[AEIOU\\s]"), "")
+                          val unique = StringBuilder()
+                          val seen = HashSet<Char>()
+                          for (ch in noVowels) {
+                              if (ch in 'A'..'Z' && seen.add(ch)) unique.append(ch)
+                          }
+                          unique.toString()
+                      }
+                      VowelMode.RAW_TEXT -> upper
+                  }
+              }
+          }
+
+          object AudioEngine {
+              private var audioTrack: AudioTrack? = null
+              @Volatile private var isPlaying = false
+
+              fun startTone(frequencyHz: Double = 528.0) {
+                  if (isPlaying) stopTone()
+                  isPlaying = true
+                  thread(priority = Thread.NORM_PRIORITY) {
+                      val sampleRate = 44100
+                      val minBuf = AudioTrack.getMinBufferSize(sampleRate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT)
+                      audioTrack = AudioTrack.Builder()
+                          .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
+                          .setAudioFormat(AudioFormat.Builder().setSampleRate(sampleRate).setChannelMask(AudioFormat.
