@@ -383,4 +383,311 @@ jobs:
                       val minBuf = AudioTrack.getMinBufferSize(sampleRate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT)
                       audioTrack = AudioTrack.Builder()
                           .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
-                          .setAudioFormat(AudioFormat.Builder().setSampleRate(sampleRate).setChannelMask(AudioFormat.
+                          .setAudioFormat(AudioFormat.Builder().setSampleRate(sampleRate).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).setEncoding(AudioFormat.ENCODING_PCM_16BIT).build())
+                          .setBufferSizeInBytes(minBuf).setTransferMode(AudioTrack.MODE_STREAM).build()
+                      audioTrack?.play()
+                      val buf = ShortArray(minBuf)
+                      var angle = 0.0
+                      while (isPlaying) {
+                          for (i in buf.indices) {
+                              buf[i] = (sin(angle) * 7000).toInt().toShort()
+                              angle += 2.0 * Math.PI * frequencyHz / sampleRate
+                              if (angle > 2.0 * Math.PI) angle -= 2.0 * Math.PI
+                          }
+                          audioTrack?.write(buf, 0, buf.size)
+                      }
+                      try { audioTrack?.stop(); audioTrack?.release() } catch (_: Exception) {}
+                  }
+              }
+
+              fun stopTone() { isPlaying = false }
+          }
+
+          data class Category(val id: Int, val name: String, val phrases: List<String>)
+
+          object SubliminalLibrary {
+              val categories = listOf(
+                  Category(1, "1. De-Program", listOf("MUST SWITCH OFF THE TELEVISION", "MUST STOP WATCHING TELEVISION", "MUST STOP LISTENING TO THE RADIO", "MUST KEEP AWAY FROM NEGATIVE PEOPLE", "MUST STAY FOCUSED", "MUST STAY POSITIVE", "MUST TAKE ACTION", "TAKE RESPONSIBILITY FOR MY ACTIONS", "TALK TO MY CONSCIOUSNESS", "THERE IS NO SUCH THING AS POVERTY ONLY ABUNDANCE", "REPEL NEGATIVITY", "MY AWARENESS LEVELS RISING", "A PROBLEM SOLVER", "THINK OUTSIDE THE BOX", "A LEADER NOT A FOLLOWER", "MY IMAGINATION CREATES REALITY", "CREATE MY REALITY")),
+                  Category(2, "2. Creative Mindset", listOf("BE SUCCESSFUL", "ACHIEVE MY GOALS", "BE RICH", "BE CREATIVE", "TURN DREAMS INTO REALITY", "IMAGINATION CREATES REALITY", "THOUGHTS CREATE REALITY", "COMMUNICATE WITH INFINITE INTELLIGENCE", "CREATE MY REALITY", "CAN SOLVE ANYTHING", "THRIVE UNDER PRESSURE", "ATTRACT WEALTH", "WEALTH IS EASILY OBTAINABLE", "ACT ON MY THOUGHTS", "EVERYTHING I TOUCH TURNS TO GOLD", "HAVE A MILLIONAIRE MINDSET")),
+                  Category(3, "3. Wealth Goals ($100k - $1M)", listOf("WILL MAKE 100000 IN TWELVE MONTHS", "FOR THE SERVICES OF MAN", "FOR BOTH MIND VALUE AND MATERIAL VALUE", "THAT GENERATES LIGHT AND SIMULTANEOUSLY NURTURES LOVE", "MONEY COMES EASILY AND FREQUENTLY", "MUST ACHIEVE MULTIPLE SOURCES OF INCOME", "THERE IS ENOUGH MONEY GOING AROUND", "INFINITE SUPPLY", "SUPPLY IS WITHOUT LIMITS", "MONEY MAGNET")),
+                  Category(6, "6. Connect to Infinite Intelligence", listOf("COMMUNICATE WITH INFINITE INTELLIGENCE", "LOVE MY PINEAL GLAND", "TALK TO MY CONSCIOUSNESS", "MY MIND IS POWERFUL", "ALL KNOWING AWARENESS", "FOLLOW UNIVERSAL LAW", "MY THOUGHTS COME FROM THE ETHER")),
+                  Category(7, "7. Healthy Mind / Body", listOf("HEALTHY", "FEEL AND LOOK YOUNG", "NEVER GET SICK", "A POSITIVE MINDED PERSON", "MUST EXERCISE", "MUST STAY SLIM", "MUST CONSUME MORE FRUIT AND VEGETABLES", "WELLNESS", "HEALTHY MIND HEALTHY BODY", "PREVENTION IS THE BEST CURE")),
+                  Category(8, "8. De-Stress", listOf("CALM AND RELAXED", "MEDITATION", "CLEAR MY MIND", "HAVE NO STRESS", "HAPPY AND CONTENT", "NEVER PANIC", "THINK CLEAN POSITIVE THOUGHTS", "SPIRITUALITY BRINGS ME CONTENTMENT", "ONE WITH THE UNIVERSAL MIND")),
+                  Category(9, "9. Self Confidence", listOf("SELF CONFIDENT", "SET MY GOALS HIGH", "ACHIEVE ANYTHING", "FOCUSED ON SUCCESS", "LOVE MYSELF SO I CAN LOVE OTHERS", "ABUNDANCE", "TRUST ONLY YOURSELF", "HAVE NO INSECURITIES", "THERE IS NO SUCH THING AS FAILURE", "A WINNER", "MAKE EYE CONTACT WHEN I SPEAK"))
+              )
+          }
+
+          enum class SpeedPreset(val label: String, val intervalMs: Long, val durationMs: Long, val contrast: Float) {
+              SLOW("Slow", 2000L, 250L, 0.70f),
+              NORMAL("Normal", 1000L, 80L, 0.40f),
+              FAST("Fast", 500L, 30L, 0.15f),
+              SUBLIMINAL("Subliminal", 400L, 10L, 0.03f)
+          }
+
+          class MainActivity : ComponentActivity() {
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+                  setContent {
+                      MaterialTheme(colorScheme = darkColorScheme()) {
+                          PowerMindApp()
+                      }
+                  }
+              }
+          }
+
+          @OptIn(ExperimentalMaterial3Api::class)
+          @Composable
+          fun PowerMindApp() {
+              val context = LocalContext.current
+              var selectedCategoryId by remember { mutableStateOf(1) }
+              var vowelMode by remember { mutableStateOf(VowelMode.REMOVE_ALL_VOWELS) }
+              var speedPreset by remember { mutableStateOf(SpeedPreset.SUBLIMINAL) }
+
+              var intervalMs by remember { mutableStateOf(400L) }
+              var durationMs by remember { mutableStateOf(10L) }
+              var contrast by remember { mutableStateOf(0.03f) }
+              var randomPlacement by remember { mutableStateOf(true) }
+              var mirroredSigil by remember { mutableStateOf(false) }
+              var soundFrequencyEnabled by remember { mutableStateOf(false) }
+
+              var isSessionActive by remember { mutableStateOf(false) }
+              var isOverlayActive by remember { mutableStateOf(false) }
+
+              val currentCategory = SubliminalLibrary.categories.firstOrNull { it.id == selectedCategoryId }
+              val currentPhrases = currentCategory?.phrases ?: emptyList()
+              val processedPhrases = remember(currentPhrases, vowelMode) {
+                  currentPhrases.map { SigilEngine.processPhrase(it, vowelMode) }
+              }
+
+              if (isSessionActive) {
+                  InAppSession(
+                      phrases = processedPhrases,
+                      intervalMs = intervalMs,
+                      durationMs = durationMs,
+                      contrast = contrast,
+                      onClose = {
+                          AudioEngine.stopTone()
+                          isSessionActive = false
+                      }
+                  )
+                  return
+              }
+
+              Scaffold(
+                  topBar = {
+                      TopAppBar(
+                          title = { Text("POWERMIND SUBLIMINAL", fontWeight = FontWeight.Bold, fontSize = 16.sp) },
+                          colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0F141C))
+                      )
+                  }
+              ) { padding ->
+                  LazyColumn(
+                      modifier = Modifier.fillMaxSize().background(Color(0xFF080C12)).padding(padding).padding(16.dp),
+                      verticalArrangement = Arrangement.spacedBy(14.dp)
+                  ) {
+                      item {
+                          Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF141B26)), shape = RoundedCornerShape(10.dp)) {
+                              Column(modifier = Modifier.padding(14.dp)) {
+                                  Text("SUBCONSCIOUS REGISTRATION PREVIEW", fontSize = 10.sp, color = Color.Gray, fontWeight = FontWeight.Bold)
+                                  val sample = currentPhrases.firstOrNull() ?: "CREATE MY REALITY"
+                                  val stripped = SigilEngine.processPhrase(sample, vowelMode)
+                                  Spacer(modifier = Modifier.height(4.dp))
+                                  Text("Raw: $sample", fontSize = 11.sp, color = Color.LightGray)
+                                  Text("Transformed: $stripped", fontSize = 16.sp, color = Color.Cyan, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                              }
+                          }
+                      }
+
+                      item {
+                          Text("VOWEL TRANSFORMATION", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                          Spacer(modifier = Modifier.height(6.dp))
+                          Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                              VowelRadioRow("Remove All Vowels", vowelMode == VowelMode.REMOVE_ALL_VOWELS) { vowelMode = VowelMode.REMOVE_ALL_VOWELS }
+                              VowelRadioRow("Keep A & I (Page 24 Rule)", vowelMode == VowelMode.KEEP_A_AND_I) { vowelMode = VowelMode.KEEP_A_AND_I }
+                              VowelRadioRow("Sigil Magic (Vowels + Duplicates Removed)", vowelMode == VowelMode.SIGIL_MAGIC) { vowelMode = VowelMode.SIGIL_MAGIC }
+                              VowelRadioRow("Raw Affirmations", vowelMode == VowelMode.RAW_TEXT) { vowelMode = VowelMode.RAW_TEXT }
+                          }
+                      }
+
+                      item {
+                          Text("SPEED PRESET", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                          Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                              SpeedPreset.values().forEach { preset ->
+                                  FilterChip(
+                                      selected = speedPreset == preset,
+                                      onClick = {
+                                          speedPreset = preset
+                                          intervalMs = preset.intervalMs
+                                          durationMs = preset.durationMs
+                                          contrast = preset.contrast
+                                      },
+                                      label = { Text(preset.label, fontSize = 10.sp) }
+                                  )
+                              }
+                          }
+                      }
+
+                      item {
+                          Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF141B26)), shape = RoundedCornerShape(10.dp)) {
+                              Column(modifier = Modifier.padding(14.dp)) {
+                                  Text("Interval: ${intervalMs}ms | Duration: ${durationMs}ms | Opacity: ${(contrast * 100).toInt()}%", color = Color.White, fontSize = 11.sp)
+                                  Slider(value = intervalMs.toFloat(), onValueChange = { intervalMs = it.toLong() }, valueRange = 100f..2000f)
+                                  Row(verticalAlignment = Alignment.CenterVertically) {
+                                      Checkbox(checked = randomPlacement, onCheckedChange = { randomPlacement = it })
+                                      Text("Random Screen Position", color = Color.White, fontSize = 12.sp)
+                                  }
+                                  Row(verticalAlignment = Alignment.CenterVertically) {
+                                      Checkbox(checked = mirroredSigil, onCheckedChange = { mirroredSigil = it })
+                                      Text("Mirrored Red-Sigil (Page 26)", color = Color.White, fontSize = 12.sp)
+                                  }
+                                  Row(verticalAlignment = Alignment.CenterVertically) {
+                                      Checkbox(checked = soundFrequencyEnabled, onCheckedChange = {
+                                          soundFrequencyEnabled = it
+                                          if (it) AudioEngine.startTone(528.0) else AudioEngine.stopTone()
+                                      })
+                                      Text("528Hz Harmonic Tone", color = Color.Cyan, fontSize = 12.sp)
+                                  }
+                              }
+                          }
+                      }
+
+                      item {
+                          Text("PROGRAM LIBRARY", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                          Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                              SubliminalLibrary.categories.forEach { cat ->
+                                  Row(
+                                      modifier = Modifier.fillMaxWidth().background(if (selectedCategoryId == cat.id) Color(0xFF1D2838) else Color(0xFF101620), RoundedCornerShape(6.dp))
+                                          .clickable { selectedCategoryId = cat.id }.padding(10.dp),
+                                      verticalAlignment = Alignment.CenterVertically
+                                  ) {
+                                      RadioButton(selected = selectedCategoryId == cat.id, onClick = { selectedCategoryId = cat.id })
+                                      Spacer(modifier = Modifier.width(6.dp))
+                                      Text(cat.name, color = Color.White, fontSize = 13.sp)
+                                  }
+                              }
+                          }
+                      }
+
+                      item {
+                          Button(
+                              onClick = {
+                                  if (soundFrequencyEnabled) AudioEngine.startTone(528.0)
+                                  isSessionActive = true
+                              },
+                              modifier = Modifier.fillMaxWidth().height(48.dp),
+                              colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00897B))
+                          ) {
+                              Text("START 5-MIN SACRED SESSION", fontWeight = FontWeight.Bold)
+                          }
+
+                          Spacer(modifier = Modifier.height(6.dp))
+
+                          Button(
+                              onClick = {
+                                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(context)) {
+                                      context.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}")))
+                                  } else {
+                                      val intent = Intent(context, SubliminalOverlayService::class.java).apply {
+                                          putExtra("PHRASES", processedPhrases.toTypedArray())
+                                          putExtra("INTERVAL_MS", intervalMs)
+                                          putExtra("DURATION_MS", durationMs)
+                                          putExtra("CONTRAST_ALPHA", contrast)
+                                          putExtra("RANDOM_POS", randomPlacement)
+                                          putExtra("MIRRORED_SIGIL", mirroredSigil)
+                                      }
+                                      if (!isOverlayActive) {
+                                          context.startService(intent)
+                                          isOverlayActive = true
+                                      } else {
+                                          context.stopService(intent)
+                                          isOverlayActive = false
+                                      }
+                                  }
+                              },
+                              modifier = Modifier.fillMaxWidth().height(48.dp),
+                              colors = ButtonDefaults.buttonColors(containerColor = if (isOverlayActive) Color(0xFFD32F2F) else Color(0xFF1E88E5))
+                          ) {
+                              Text(if (isOverlayActive) "STOP OVERLAY" else "LAUNCH OVERLAY (OVER OTHER APPS)", fontWeight = FontWeight.Bold)
+                          }
+                          Spacer(modifier = Modifier.height(20.dp))
+                      }
+                  }
+              }
+          }
+
+          @Composable
+          fun VowelRadioRow(title: String, selected: Boolean, onClick: () -> Unit) {
+              Row(
+                  modifier = Modifier.fillMaxWidth().background(if (selected) Color(0xFF1B2836) else Color(0xFF101620), RoundedCornerShape(6.dp)).clickable(onClick = onClick).padding(8.dp),
+                  verticalAlignment = Alignment.CenterVertically
+              ) {
+                  RadioButton(selected = selected, onClick = onClick)
+                  Spacer(modifier = Modifier.width(6.dp))
+                  Text(title, color = Color.White, fontSize = 12.sp)
+              }
+          }
+
+          @Composable
+          fun InAppSession(phrases: List<String>, intervalMs: Long, durationMs: Long, contrast: Float, onClose: () -> Unit) {
+              var flashText by remember { mutableStateOf("") }
+              var isVisible by remember { mutableStateOf(false) }
+
+              LaunchedEffect(phrases, intervalMs, durationMs) {
+                  if (phrases.isEmpty()) return@LaunchedEffect
+                  while (true) {
+                      delay(intervalMs)
+                      flashText = phrases.random()
+                      isVisible = true
+                      delay(durationMs)
+                      isVisible = false
+                  }
+              }
+
+              val infiniteTransition = rememberInfiniteTransition(label = "spin")
+              val angle by infiniteTransition.animateFloat(
+                  initialValue = 0f, targetValue = 360f,
+                  animationSpec = infiniteRepeatable(animation = tween(24000, easing = LinearEasing)), label = "angle"
+              )
+
+              Box(modifier = Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
+                  Canvas(modifier = Modifier.fillMaxSize().rotate(angle)) {
+                      val center = Offset(size.width / 2, size.height / 2)
+                      val radius = size.width.coerceAtMost(size.height) * 0.35f
+                      for (i in 1..4) {
+                          drawCircle(color = Color.Cyan.copy(alpha = 0.12f), radius = radius * (i / 4f), center = center, style = Stroke(2.dp.toPx()))
+                      }
+                      val p = Path()
+                      p.moveTo(center.x, center.y - radius)
+                      p.lineTo(center.x + radius * cos(Math.toRadians(30.0)).toFloat(), center.y + radius * sin(Math.toRadians(30.0)).toFloat())
+                      p.lineTo(center.x - radius * cos(Math.toRadians(30.0)).toFloat(), center.y + radius * sin(Math.toRadians(30.0)).toFloat())
+                      p.close()
+                      drawPath(p, color = Color.White.copy(alpha = 0.25f), style = Stroke(3.dp.toPx()))
+                  }
+
+                  if (isVisible) {
+                      Text(
+                          text = flashText,
+                          color = Color.White.copy(alpha = contrast),
+                          fontSize = 30.sp,
+                          fontWeight = FontWeight.Black,
+                          fontFamily = FontFamily.Monospace,
+                          textAlign = TextAlign.Center,
+                          modifier = Modifier.padding(32.dp).align(Alignment.Center)
+                      )
+                  }
+
+                  IconButton(onClick = onClose, modifier = Modifier.align(Alignment.TopEnd).padding(20.dp)) {
+                      Text("✕", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                  }
+              }
+          }
+          EOF
+
+      - name: Build Debug APK
+        run: gradle assembleDebug --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: PowerMind-OnePlus15-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
