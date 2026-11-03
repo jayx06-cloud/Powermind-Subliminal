@@ -15,18 +15,18 @@ jobs:
           echo 'plugins{id("com.android.application") version "8.7.2" apply false;id("org.jetbrains.kotlin.android") version "2.0.21" apply false;id("org.jetbrains.kotlin.plugin.compose") version "2.0.21" apply false}' > build.gradle.kts
           cat << 'EOF' > app/build.gradle.kts
           plugins{id("com.android.application");id("org.jetbrains.kotlin.android");id("org.jetbrains.kotlin.plugin.compose")}
-          android{namespace="com.powermind.subliminal";compileSdk=34;defaultConfig{applicationId="com.powermind.subliminal";minSdk=26;targetSdk=34;versionCode=1;versionName="1.0"};buildTypes{release{isMinifyEnabled=false}};compileOptions{sourceCompatibility=JavaVersion.VERSION_17;targetCompatibility=JavaVersion.VERSION_17};kotlinOptions{jvmTarget="17";freeCompilerArgs+=listOf("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")};buildFeatures{compose=true}}
+          android{namespace="com.powermind.subliminal";compileSdk=34;defaultConfig{applicationId="com.powermind.subliminal";minSdk=26;targetSdk=34;versionCode=2;versionName="1.1"};buildTypes{release{isMinifyEnabled=false}};compileOptions{sourceCompatibility=JavaVersion.VERSION_17;targetCompatibility=JavaVersion.VERSION_17};kotlinOptions{jvmTarget="17";freeCompilerArgs+=listOf("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")};buildFeatures{compose=true}}
           dependencies{implementation("androidx.core:core-ktx:1.13.1");implementation("androidx.activity:activity-compose:1.9.3");implementation(platform("androidx.compose:compose-bom:2024.10.00"));implementation("androidx.compose.ui:ui");implementation("androidx.compose.material3:material3")}
           EOF
           cat << 'EOF' > app/src/main/AndroidManifest.xml
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android"><uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/><uses-permission android:name="android.permission.FOREGROUND_SERVICE"/><uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/><application android:label="PowerMind" android:theme="@android:style/Theme.Material.NoActionBar"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity><service android:name=".SubliminalOverlayService" android:exported="false" android:foregroundServiceType="specialUse"><property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Subliminal"/></service></application></manifest>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android"><uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/><uses-permission android:name="android.permission.FOREGROUND_SERVICE"/><uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/><uses-permission android:name="android.permission.POST_NOTIFICATIONS"/><application android:allowBackup="true" android:label="PowerMind" android:theme="@android:style/Theme.Material.NoActionBar"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity><service android:name=".SubliminalOverlayService" android:exported="false" android:foregroundServiceType="specialUse"><property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Subliminal"/></service></application></manifest>
           EOF
           cat << 'EOF' > app/src/main/java/com/powermind/subliminal/SubliminalOverlayService.kt
           package com.powermind.subliminal
           import android.app.*;import android.content.*;import android.graphics.*;import android.os.*;import android.view.*;import android.widget.TextView;import androidx.core.app.NotificationCompat;import kotlin.random.Random
           class SubliminalOverlayService:Service(){
           private var wm:WindowManager?=null;private var v:TextView?=null;private var p:WindowManager.LayoutParams?=null;private val h=Handler(Looper.getMainLooper());private var run=false
-          private val list=listOf("MUST SWITCH OFF THE TV","MUST STAY FOCUSED","CREATE MY REALITY","MONEY MAGNET","A WINNER")
+          private var list=listOf("MUST SWITCH OFF THE TV","MUST STAY FOCUSED","CREATE MY REALITY","MONEY MAGNET","A WINNER");private var col=Color.WHITE;private var sz=28f;private var fnt=0;private var iv=400L;private var dur=16L
           override fun onBind(i:Intent?)=null
           override fun onCreate(){super.onCreate()
           if(Build.VERSION.SDK_INT>=26){getSystemService(NotificationManager::class.java)?.createNotificationChannel(NotificationChannel("pm","PM",NotificationManager.IMPORTANCE_LOW))}
@@ -35,34 +35,56 @@ jobs:
           val t=if(Build.VERSION.SDK_INT>=26)WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY else WindowManager.LayoutParams.TYPE_PHONE
           p=WindowManager.LayoutParams(WindowManager.LayoutParams.WRAP_CONTENT,WindowManager.LayoutParams.WRAP_CONTENT,t,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,PixelFormat.TRANSLUCENT).apply{gravity=Gravity.CENTER}
           v=TextView(this).apply{textSize=28f;setTextColor(Color.WHITE);visibility=View.GONE};wm?.addView(v,p)}
-          override fun onStartCommand(intent:Intent?,flags:Int,id:Int):Int{if(!run){run=true;loop()};return START_STICKY}
-          private fun loop(){if(!run)return;h.postDelayed({v?.apply{text=list.random().replace(Regex("[AEIOU]"),"");alpha=0.05f;visibility=View.VISIBLE}
+          override fun onStartCommand(intent:Intent?,flags:Int,id:Int):Int{
+          intent?.let{list=it.getStringArrayExtra("P")?.toList()?:list;col=it.getIntExtra("C",Color.WHITE);sz=it.getFloatExtra("S",28f);fnt=it.getIntExtra("F",0);iv=it.getLongExtra("I",400L);dur=it.getLongExtra("D",16L)}
+          if(!run){run=true;loop()};return START_STICKY}
+          private fun loop(){if(!run)return;h.postDelayed({
+          v?.apply{text=list.random().replace(Regex("[AEIOU]"),"");textSize=sz;setTextColor(col);typeface=when(fnt){1->Typeface.SANS_SERIF;2->Typeface.SERIF;else->Typeface.MONOSPACE};alpha=0.08f;visibility=View.VISIBLE}
           p?.let{val m=resources.displayMetrics;it.x=Random.nextInt(-m.widthPixels/3,m.widthPixels/3);it.y=Random.nextInt(-m.heightPixels/4,m.heightPixels/4);wm?.updateViewLayout(v,it)}
-          h.postDelayed({v?.visibility=View.GONE;loop()},16L)},400L)}
+          h.postDelayed({v?.visibility=View.GONE;loop()},dur)},iv)}
           override fun onDestroy(){super.onDestroy();run=false;h.removeCallbacksAndMessages(null);v?.let{wm?.removeView(it)}}}
           EOF
           cat << 'EOF' > app/src/main/java/com/powermind/subliminal/MainActivity.kt
           @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
           package com.powermind.subliminal
           import android.content.*;import android.net.Uri;import android.os.*;import android.provider.Settings;import androidx.activity.ComponentActivity;import androidx.activity.compose.setContent
-          import androidx.compose.foundation.*;import androidx.compose.foundation.layout.*;import androidx.compose.material3.*;import androidx.compose.runtime.*;import androidx.compose.ui.*;import androidx.compose.ui.graphics.Color;import androidx.compose.ui.platform.LocalContext;import androidx.compose.ui.text.font.*;import androidx.compose.ui.unit.*;import kotlinx.coroutines.delay
+          import androidx.compose.foundation.*;import androidx.compose.foundation.layout.*;import androidx.compose.foundation.lazy.LazyColumn;import androidx.compose.foundation.shape.RoundedCornerShape;import androidx.compose.material3.*;import androidx.compose.runtime.*;import androidx.compose.ui.*;import androidx.compose.ui.graphics.Color;import androidx.compose.ui.graphics.toArgb;import androidx.compose.ui.platform.LocalContext;import androidx.compose.ui.text.font.*;import androidx.compose.ui.unit.*;import kotlinx.coroutines.delay
           class MainActivity:ComponentActivity(){override fun onCreate(s:Bundle?){super.onCreate(s);setContent{MaterialTheme(colorScheme=darkColorScheme()){App()}}}}
           @Composable fun App(){val ctx=LocalContext.current;var active by remember{mutableStateOf(false)};var session by remember{mutableStateOf(false)}
-          val raw=listOf("MUST SWITCH OFF THE TV","MUST STAY FOCUSED","CREATE MY REALITY","MONEY MAGNET","A WINNER")
+          val colors=listOf(Color.White to "White",Color.Cyan to "Cyan",Color.Yellow to "Yellow",Color.Green to "Green",Color(0xFFFF5252) to "Red",Color(0xFFFFD700) to "Gold")
+          val fonts=listOf(FontFamily.Monospace to "Mono",FontFamily.SansSerif to "Sans",FontFamily.Serif to "Serif",FontFamily.Cursive to "Script")
+          var colIdx by remember{mutableStateOf(1)};var fontIdx by remember{mutableStateOf(0)};var size by remember{mutableStateOf(30f)};var interval by remember{mutableStateOf(400L)};var duration by remember{mutableStateOf(16L)}
+          val raw=listOf("MUST SWITCH OFF THE TV","MUST STAY FOCUSED","CREATE MY REALITY","MONEY MAGNET","A WINNER","TURN DREAMS INTO REALITY","THOUGHTS CREATE REALITY","INFINITE SUPPLY","HEALTHY MIND HEALTHY BODY","CALM AND RELAXED")
           val stripped=remember{raw.map{it.replace(Regex("[AEIOU]"),"")}}
           if(session){var text by remember{mutableStateOf("")};var vis by remember{mutableStateOf(false)}
-          LaunchedEffect(Unit){while(true){delay(400);text=stripped.random();vis=true;delay(16);vis=false}}
+          LaunchedEffect(Unit){while(true){delay(interval);text=stripped.random();vis=true;delay(duration);vis=false}}
           Box(Modifier.fillMaxSize().background(Color.Black).clickable{session=false},Alignment.Center){
-          if(vis)Text(text,color=Color.White,fontSize=30.sp,fontWeight=FontWeight.Bold,fontFamily=FontFamily.Monospace)
-          Text("Tap to exit",color=Color.Gray,modifier=Modifier.align(Alignment.BottomCenter).padding(20.dp))};return}
-          Scaffold{p->Column(Modifier.fillMaxSize().background(Color(0xFF080C12)).padding(p).padding(20.dp),verticalArrangement=Arrangement.spacedBy(16.dp)){
-          Text("POWERMIND SUBLIMINAL",color=Color.Cyan,fontSize=20.sp,fontWeight=FontWeight.Bold)
-          Card(colors=CardDefaults.cardColors(containerColor=Color(0xFF141B26))){Column(Modifier.padding(16.dp)){
-          Text("VOWEL STRIPPED PREVIEW",color=Color.Gray,fontSize=11.sp,fontWeight=FontWeight.Bold)
+          if(vis)Text(text,color=colors[colIdx].first,fontSize=size.sp,fontFamily=fonts[fontIdx].first,fontWeight=FontWeight.Bold)
+          Text("Tap anywhere to exit session",color=Color.Gray,modifier=Modifier.align(Alignment.BottomCenter).padding(24.dp))};return}
+          Scaffold{p->LazyColumn(Modifier.fillMaxSize().background(Color(0xFF080C12)).padding(p).padding(16.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
+          item{Text("POWERMIND SUBLIMINAL",color=Color.Cyan,fontSize=20.sp,fontWeight=FontWeight.Bold)}
+          item{Card(colors=CardDefaults.cardColors(containerColor=Color(0xFF141B26))){Column(Modifier.padding(14.dp)){
+          Text("LIVE CUSTOM PREVIEW",color=Color.Gray,fontSize=10.sp,fontWeight=FontWeight.Bold)
           Text("Raw: CREATE MY REALITY",color=Color.LightGray,fontSize=12.sp)
-          Text("Flash: CRT MY RLTY",color=Color.Cyan,fontSize=18.sp,fontWeight=FontWeight.Bold,fontFamily=FontFamily.Monospace)}}
-          Button(onClick={session=true},Modifier.fillMaxWidth().height(50.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF00897B))){Text("START IN-APP SESSION",fontWeight=FontWeight.Bold)}
-          Button(onClick={if(Build.VERSION.SDK_INT>=23&&!Settings.canDrawOverlays(ctx)){ctx.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,Uri.parse("package:${ctx.packageName}")))}else{val it=Intent(ctx,SubliminalOverlayService::class.java);if(!active){ctx.startService(it);active=true}else{ctx.stopService(it);active=false}}},Modifier.fillMaxWidth().height(50.dp),colors=ButtonDefaults.buttonColors(containerColor=if(active)Color.Red else Color(0xFF1E88E5))){Text(if(active)"STOP OVERLAY" else "LAUNCH SYSTEM OVERLAY",fontWeight=FontWeight.Bold)}}}}
+          Text("CRT MY RLTY",color=colors[colIdx].first,fontSize=size.sp,fontFamily=fonts[fontIdx].first,fontWeight=FontWeight.Bold)}}}
+          item{Text("TEXT COLOR",color=Color.White,fontSize=12.sp,fontWeight=FontWeight.Bold)
+          Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)){
+          colors.forEachIndexed{i,pair->FilterChip(selected=colIdx==i,onClick={colIdx=i},label={Text(pair.second,color=pair.first)})}}}
+          item{Text("FONT STYLE",color=Color.White,fontSize=12.sp,fontWeight=FontWeight.Bold)
+          Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)){
+          fonts.forEachIndexed{i,pair->FilterChip(selected=fontIdx==i,onClick={fontIdx=i},label={Text(pair.second)})}}}
+          item{Card(colors=CardDefaults.cardColors(containerColor=Color(0xFF141B26))){Column(Modifier.padding(12.dp)){
+          Text("Text Size: ${size.toInt()}sp",color=Color.White,fontSize=12.sp)
+          Slider(size,{size=it},valueRange=16f..46f)
+          Text("Flash Every: ${interval}ms",color=Color.White,fontSize=12.sp)
+          Slider(interval.toFloat(),{interval=it.toLong()},valueRange=100f..2500f)
+          Text("Flash Duration: ${duration}ms",color=Color.White,fontSize=12.sp)
+          Slider(duration.toFloat(),{duration=it.toLong()},valueRange=8f..300f)}}}
+          item{Button(onClick={session=true},Modifier.fillMaxWidth().height(48.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF00897B))){Text("START IN-APP SESSION",fontWeight=FontWeight.Bold)}
+          Spacer(Modifier.height(8.dp))
+          Button(onClick={if(Build.VERSION.SDK_INT>=23&&!Settings.canDrawOverlays(ctx)){ctx.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,Uri.parse("package:${ctx.packageName}")))}else{
+          val it=Intent(ctx,SubliminalOverlayService::class.java).apply{putExtra("P",stripped.toTypedArray());putExtra("C",colors[colIdx].first.toArgb());putExtra("S",size);putExtra("F",fontIdx);putExtra("I",interval);putExtra("D",duration)}
+          if(!active){ctx.startService(it);active=true}else{ctx.stopService(it);active=false}}},Modifier.fillMaxWidth().height(48.dp),colors=ButtonDefaults.buttonColors(containerColor=if(active)Color.Red else Color(0xFF1E88E5))){Text(if(active)"STOP OVERLAY" else "LAUNCH SYSTEM OVERLAY",fontWeight=FontWeight.Bold)}}}}}
           EOF
       - run: gradle assembleDebug --stacktrace --no-daemon
       - uses: actions/upload-artifact@v4
