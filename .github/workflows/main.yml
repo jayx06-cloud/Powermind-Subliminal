@@ -1,6 +1,7 @@
 Look at what your screen says in the first screenshot:
 👉 "No Gradle build results detected." and "Total duration: 36s"
 
+This means GitHub Actions ran successfully, but 
 
 This happens when pasting long code on a phone: the mobile clipboard often cuts
 off the bottom of the file, so the actual compile and upload steps at the very
@@ -22,10 +23,6 @@ To prevent your mobile browser from cutting off the code, here is a streamlined
 version where all the affirmations and code are compactly packed into a single
 script. It is less than half the size, so it will paste cleanly on mobile.
 
-1.  Go back to: Code \rightarrow .github \rightarrow workflows \rightarrow
-    main.yml.
-2.  Tap the Pencil icon ✏️ to edit.
-3.  Select all, delete everything, and paste this exact workflow:
 
 name: Build PowerMind APK
 
