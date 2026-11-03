@@ -1,29 +1,3 @@
-Look at what your screen says in the first screenshot:
-👉 "No Gradle build results detected." and "Total duration: 36s"
-
-This means GitHub Actions ran successfully, but 
-
-This happens when pasting long code on a phone: the mobile clipboard often cuts
-off the bottom of the file, so the actual compile and upload steps at the very
-end were omitted from main.yml.
-
-Step 1: Verify what steps actually ran
-
-On your second screenshot, look right below main.yml on: push: 👉 Tap on the box
-that says build (the white rectangle with 36s).
-
-You will see the list of steps that ran. Look at the list:
-
-  - You will likely notice that "Build Debug APK" and "Upload APK" are missing
-    from the list because the end of the file was cut off during the paste.
-
-Step 2: Fix it with a Lean, Non-Truncated Workflow
-
-To prevent your mobile browser from cutting off the code, here is a streamlined
-version where all the affirmations and code are compactly packed into a single
-script. It is less than half the size, so it will paste cleanly on mobile.
-
-
 name: Build PowerMind APK
 
 on:
@@ -424,16 +398,3 @@ jobs:
         with:
           name: PowerMind-OnePlus15-APK
           path: app/build/outputs/apk/debug/app-debug.apk
-
-Step 3: Commit and Download
-
-1.  Make sure the file ends with the lines:
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
-      ...
-2.  Tap the green Commit changes... button \rightarrow confirm Commit changes.
-3.  Tap Actions at the top.
-4.  Run #5 will start. Because gradle assembleDebug is now included, you will
-    see it run for ~2 minutes.
-5.  When it turns green \checkmark, tap on it, scroll to the bottom under
-    Artifacts, and tap PowerMind-OnePlus15-APK to download it!
