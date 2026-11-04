@@ -20,7 +20,7 @@ jobs:
           echo 'plugins{id("com.android.application") version "8.7.2" apply false;id("org.jetbrains.kotlin.android") version "2.0.21" apply false;id("org.jetbrains.kotlin.plugin.compose") version "2.0.21" apply false}' > build.gradle.kts
           cat << 'EOF' > app/build.gradle.kts
           plugins{id("com.android.application");id("org.jetbrains.kotlin.android");id("org.jetbrains.kotlin.plugin.compose")}
-          android{namespace="com.powermind.subliminal";compileSdk=34;defaultConfig{applicationId="com.powermind.subliminal";minSdk=26;targetSdk=34;versionCode=14;versionName="3.1"};buildTypes{release{isMinifyEnabled=false}};compileOptions{sourceCompatibility=JavaVersion.VERSION_17;targetCompatibility=JavaVersion.VERSION_17};kotlinOptions{jvmTarget="17";freeCompilerArgs+=listOf("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")};buildFeatures{compose=true};packaging{resources{excludes+="/META-INF/{AL2.0,LGPL2.1}"};jniLibs{useLegacyPackaging=true;keepDebugSymbols+="**/*.so"}}}
+          android{namespace="com.powermind.subliminal";compileSdk=34;defaultConfig{applicationId="com.powermind.subliminal";minSdk=26;targetSdk=34;versionCode=15;versionName="3.2"};buildTypes{release{isMinifyEnabled=false}};compileOptions{sourceCompatibility=JavaVersion.VERSION_17;targetCompatibility=JavaVersion.VERSION_17};kotlinOptions{jvmTarget="17";freeCompilerArgs+=listOf("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")};buildFeatures{compose=true};packaging{resources{excludes+="/META-INF/{AL2.0,LGPL2.1}"};jniLibs{useLegacyPackaging=true;keepDebugSymbols+="**/*.so"}}}
           dependencies{implementation("androidx.core:core-ktx:1.13.1");implementation("androidx.activity:activity-compose:1.9.3");implementation(platform("androidx.compose:compose-bom:2024.10.00"));implementation("androidx.compose.ui:ui");implementation("androidx.compose.material3:material3")}
           EOF
           cat << 'EOF' > app/src/main/AndroidManifest.xml
@@ -31,7 +31,7 @@ jobs:
           import android.app.*;import android.content.*;import android.graphics.*;import android.os.*;import android.text.*;import android.text.style.ForegroundColorSpan;import android.view.*;import android.widget.TextView;import androidx.core.app.NotificationCompat;import kotlin.random.Random
           class SubliminalOverlayService:Service(){
           private var wm:WindowManager?=null;private var v:TextView?=null;private var p:WindowManager.LayoutParams?=null;private val h=Handler(Looper.getMainLooper());private var run=false
-          private var list=listOf("MUST STAY FOCUSED","CREATE MY REALITY","MONEY MAGNET");private var col=Color.WHITE;private var sz=28f;private var fnt=0;private var iv=400L;private var dur=10L;private var alp=0.03f;private var rnd=false;private var mir=false
+          private var list=listOf("CREATE MY REALITY");private var col=Color.WHITE;private var sz=28f;private var fnt=0;private var iv=400L;private var dur=10L;private var alp=0.03f;private var rnd=false;private var mir=false
           override fun onBind(i:Intent?)=null
           override fun onCreate(){super.onCreate()
           if(Build.VERSION.SDK_INT>=26){getSystemService(NotificationManager::class.java)?.createNotificationChannel(NotificationChannel("pm","PM",NotificationManager.IMPORTANCE_LOW))}
@@ -44,120 +44,109 @@ jobs:
           intent?.let{list=it.getStringArrayExtra("P")?.toList()?:list;col=it.getIntExtra("C",Color.WHITE);sz=it.getFloatExtra("S",28f);fnt=it.getIntExtra("F",0);iv=it.getLongExtra("I",400L);dur=it.getLongExtra("D",10L);alp=it.getFloatExtra("A",0.03f);rnd=it.getBooleanExtra("RND",false);mir=it.getBooleanExtra("MIR",false)}
           if(!run){run=true;loop()};return START_STICKY}
           private fun loop(){if(!run)return;h.postDelayed({
-          val phrase=list.random()
+          val phrase=if(list.isNotEmpty())list.random() else "CREATE MY REALITY"
           v?.apply{
           if(mir){val r=phrase.reversed();val s=SpannableString("$phrase | $r");s.setSpan(ForegroundColorSpan(Color.RED),phrase.length+3,s.length,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);text=s}else{text=phrase}
           textSize=sz;setTextColor(col);typeface=when(fnt){1->Typeface.SANS_SERIF;2->Typeface.SERIF;3->Typeface.create("cursive",Typeface.NORMAL);else->Typeface.MONOSPACE};alpha=alp;visibility=View.VISIBLE}
           p?.let{if(rnd){val m=resources.displayMetrics;it.x=Random.nextInt(-m.widthPixels/3,m.widthPixels/3);it.y=Random.nextInt(-m.heightPixels/4,m.heightPixels/4)}else{it.x=0;it.y=0};wm?.updateViewLayout(v,it)}
-          if(dur<=16){Choreographer.getInstance().postFrameCallback{v?.visibility=View.GONE;loop()}}else{h.postDelayed({v?.visibility=View.GONE;loop()},dur)}},iv)}
+          h.postDelayed({v?.visibility=View.GONE;loop()},dur)},iv)}
           override fun onDestroy(){super.onDestroy();run=false;h.removeCallbacksAndMessages(null);v?.let{wm?.removeView(it)}}}
           EOF
           cat << 'EOF' > app/src/main/java/com/powermind/subliminal/MainActivity.kt
           @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
           package com.powermind.subliminal
-          import android.content.*;import android.media.*;import android.net.Uri;import android.os.*;import android.provider.Settings;import androidx.activity.ComponentActivity;import androidx.activity.compose.setContent
-          import androidx.compose.animation.core.*;import androidx.compose.foundation.*;import androidx.compose.foundation.layout.*;import androidx.compose.foundation.lazy.LazyColumn;import androidx.compose.foundation.shape.RoundedCornerShape;import androidx.compose.material3.*;import androidx.compose.runtime.*;import androidx.compose.ui.*;import androidx.compose.ui.draw.rotate;import androidx.compose.ui.geometry.Offset;import androidx.compose.ui.graphics.*;import androidx.compose.ui.graphics.drawscope.Stroke;import androidx.compose.ui.platform.LocalContext;import androidx.compose.ui.text.font.*;import androidx.compose.ui.unit.*;import kotlinx.coroutines.delay;import kotlin.concurrent.thread;import kotlin.math.*
-          object AudioTrackEngine{private var t:AudioTrack?=null;@Volatile private var p=false;fun start(){stop();p=true;thread{val sr=44100;val b=AudioTrack.getMinBufferSize(sr,AudioFormat.CHANNEL_OUT_MONO,AudioFormat.ENCODING_PCM_16BIT);t=AudioTrack.Builder().setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build()).setAudioFormat(AudioFormat.Builder().setSampleRate(sr).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).setEncoding(AudioFormat.ENCODING_PCM_16BIT).build()).setBufferSizeInBytes(b).setTransferMode(AudioTrack.MODE_STREAM).build();t?.play();val buf=ShortArray(b);var a=0.0;while(p){for(i in buf.indices){buf[i]=(sin(a)*7000).toInt().toShort();a+=2.0*Math.PI*528.0/sr};t?.write(buf,0,buf.size)};try{t?.stop();t?.release()}catch(e:Exception){}}};fun stop(){p=false}}
-          class MainActivity:ComponentActivity(){override fun onCreate(s:Bundle?){super.onCreate(s);setContent{MaterialTheme(colorScheme=darkColorScheme()){DesktopApp()}}}}
-          @Composable fun DesktopApp(){val ctx=LocalContext.current
-          val phrases=remember{mutableStateListOf("MUST SWITCH OFF THE TV","MUST STOP WATCHING TV","MUST STAY FOCUSED","TAKE RESPONSIBILITY FOR MY ACTIONS","REPEL NEGATIVITY","CREATE MY REALITY","BE SUCCESSFUL","ACHIEVE MY GOALS","BE RICH","TURN DREAMS INTO REALITY","THOUGHTS CREATE REALITY","WILL MAKE £100,000 IN TWELVE MONTHS","WILL MAKE £500,000 IN TWELVE MONTHS","WILL MAKE £1,000,000 IN TWELVE MONTHS","INFINITE SUPPLY","MONEY MAGNET","COMMUNICATE WITH INFINITE INTELLIGENCE","LOVE MY PINEAL GLAND","MY THOUGHTS COME FROM THE ETHER","HEALTHY","FEEL AND LOOK YOUNG","HEALTHY MIND HEALTHY BODY","PREVENTION IS THE BEST CURE","CALM AND RELAXED","MEDITATION","CLEAR MY MIND","HAPPY AND CONTENT","SELF CONFIDENT","SET MY GOALS HIGH","A WINNER","TRUST ONLY YOURSELF")}
+          import android.content.*;import android.net.Uri;import android.os.*;import android.provider.Settings;import androidx.activity.ComponentActivity;import androidx.activity.compose.setContent
+          import androidx.compose.foundation.*;import androidx.compose.foundation.layout.*;import androidx.compose.foundation.lazy.LazyColumn;import androidx.compose.foundation.shape.RoundedCornerShape;import androidx.compose.material3.*;import androidx.compose.runtime.*;import androidx.compose.ui.*;import androidx.compose.ui.graphics.Color;import androidx.compose.ui.platform.LocalContext;import androidx.compose.ui.text.font.*;import androidx.compose.ui.text.style.TextAlign;import androidx.compose.ui.unit.*;import kotlinx.coroutines.delay
+          class MainActivity:ComponentActivity(){override fun onCreate(s:Bundle?){super.onCreate(s);setContent{MaterialTheme(colorScheme=darkColorScheme()){MainApp()}}}}
+          @Composable fun MainApp(){val ctx=LocalContext.current
+          val categories=remember{listOf("01. De-Program" to listOf("MUST SWITCH OFF THE TELEVISION","MUST STOP WATCHING TELEVISION","MUST STOP LISTENING TO THE RADIO","MUST KEEP AWAY FROM NEGATIVE PEOPLE","MUST STAY FOCUSED","MUST STAY POSITIVE","MUST TAKE ACTION","TAKE RESPONSIBILITY FOR MY ACTIONS","TALK TO MY CONSCIOUSNESS","THERE IS NO SUCH THING AS POVERTY ONLY ABUNDANCE","REPEL NEGATIVITY","MY AWARENESS LEVELS RISING","A PROBLEM SOLVER","THINK OUTSIDE THE BOX","A LEADER NOT A FOLLOWER","MY IMAGINATION CREATES REALITY","CREATE MY REALITY"),"02. Creative Mindset" to listOf("BE SUCCESSFUL","ACHIEVE MY GOALS","BE RICH","BE CREATIVE","TURN DREAMS INTO REALITY","IMAGINATION CREATES REALITY","THOUGHTS CREATE REALITY","COMMUNICATE WITH INFINITE INTELLIGENCE","CREATE MY REALITY","CAN SOLVE ANYTHING","THRIVE UNDER PRESSURE","ATTRACT WEALTH","WEALTH IS EASILY OBTAINABLE","ACT ON MY THOUGHTS","EVERYTHING I TOUCH TURNS TO GOLD","HAVE A MILLIONAIRE MINDSET"),"03. The £100,000 goal" to listOf("WILL MAKE £100,000 IN TWELVE MONTHS","FOR THE SERVICES OF MAN","FOR BOTH MIND VALUE AND MATERIAL VALUE","THAT GENERATES LIGHT AND SIMULTANEOUSLY NURTURES LOVE","MONEY COMES EASILY AND FREQUENTLY","MUST ACHIEVE MULTIPLE SOURCES OF INCOME","THERE IS ENOUGH MONEY GOING AROUND","INFINITE SUPPLY","MONEY MAGNET"),"04. The £500,000 goal" to listOf("WILL MAKE £500,000 IN TWELVE MONTHS","FOR THE SERVICES OF MAN","INFINITE SUPPLY","SUPPLY IS WITHOUT LIMITS","MONEY MAGNET"),"05. The £1,000,000 goal" to listOf("WILL MAKE £1,000,000 IN TWELVE MONTHS","EVERYTHING I TOUCH TURNS TO GOLD","HAVE A MILLIONAIRE MINDSET","DREAMERS NEVER SLEEP","INFINITE SUPPLY"),"06. Infinite Intelligence" to listOf("COMMUNICATE WITH INFINITE INTELLIGENCE","LOVE MY PINEAL GLAND","TALK TO MY CONSCIOUSNESS","MY MIND IS POWERFUL","ALL KNOWING AWARENESS","FOLLOW UNIVERSAL LAW","MY THOUGHTS COME FROM THE ETHER"),"07. Healthy Mind / Body" to listOf("HEALTHY","FEEL AND LOOK YOUNG","NEVER GET SICK","A POSITIVE MINDED PERSON","MUST EXERCISE","MUST STAY SLIM","MUST CONSUME MORE FRUIT AND VEGETABLES","WELLNESS","HEALTHY MIND HEALTHY BODY","PREVENTION IS THE BEST CURE"),"08. De-Stress" to listOf("CALM AND RELAXED","MEDITATION","CLEAR MY MIND","HAVE NO STRESS","HAPPY AND CONTENT","NEVER PANIC","THINK CLEAN POSITIVE THOUGHTS","SPIRITUALITY BRINGS ME CONTENTMENT","ONE WITH THE UNIVERSAL MIND"),"09. Self Confidence" to listOf("SELF CONFIDENT","SET MY GOALS HIGH","ACHIEVE ANYTHING","FOCUSED ON SUCCESS","LOVE MYSELF SO I CAN LOVE OTHERS","ABUNDANCE","TRUST ONLY YOURSELF","HAVE NO INSECURITIES","THERE IS NO SUCH THING AS FAILURE","A WINNER","MAKE EYE CONTACT WHEN I SPEAK"))}
+          val checkedCats=remember{mutableStateListOf(0,1,2,5,6,7,8)}
+          val customWords=remember{mutableStateListOf<String>()}
           val customSigils=remember{mutableStateListOf<String>()}
-          var selIdx by remember{mutableStateOf(0)}
-          var randomDisplay by remember{mutableStateOf(false)}
-          var contrast by remember{mutableStateOf(0.03f)}
-          var musicOn by remember{mutableStateOf(false)}
-          var intervalSec by remember{mutableStateOf(0.4f)}
-          var durationMs by remember{mutableStateOf(10f)}
-          var fontSize by remember{mutableStateOf(20f)}
+          var customWordInput by remember{mutableStateOf("")}
+          var customSigilInput by remember{mutableStateOf("")}
+          var modeIdx by remember{mutableStateOf(0)}
+          var mirrorMode by remember{mutableStateOf(false)}
+          var randomPos by remember{mutableStateOf(false)}
           var colIdx by remember{mutableStateOf(0)}
           var fontIdx by remember{mutableStateOf(0)}
-          var vowelMode by remember{mutableStateOf(0)}
-          var mirrorMode by remember{mutableStateOf(false)}
-          var showAddDialog by remember{mutableStateOf(false)}
-          var showEditDialog by remember{mutableStateOf(false)}
-          var showSigilDialog by remember{mutableStateOf(false)}
-          var dialogText by remember{mutableStateOf("")}
-          var videoActive by remember{mutableStateOf(false)}
+          var fontSize by remember{mutableStateOf(24f)}
+          var opacity by remember{mutableStateOf(0.05f)}
+          var interval by remember{mutableStateOf(400L)}
+          var duration by remember{mutableStateOf(10L)}
+          var session by remember{mutableStateOf(false)}
           var overlayActive by remember{mutableStateOf(false)}
           val colors=listOf(Color.White to "White",Color.Black to "Black",Color.Cyan to "Cyan",Color.Yellow to "Yellow",Color.Green to "Green",Color(0xFFFF5252) to "Red",Color(0xFFFFD700) to "Gold")
           val colorInts=listOf(android.graphics.Color.WHITE,android.graphics.Color.BLACK,android.graphics.Color.CYAN,android.graphics.Color.YELLOW,android.graphics.Color.GREEN,android.graphics.Color.RED,0xFFFFD700.toInt())
-          val fonts=listOf(FontFamily.Monospace to "Tahoma/Mono",FontFamily.SansSerif to "Sans",FontFamily.Serif to "Serif",FontFamily.Cursive to "Script")
-          fun transform(raw:String):String{val u=raw.uppercase().trim();return when(vowelMode){0->u.replace(Regex("[AEIOU]"),"");1->u.replace(Regex("[AI]"),"");2->u.replace(Regex("[EOU]"),"");3->{val nv=u.replace(Regex("[AEIOU\\s]"),"");val sb=StringBuilder();val s=HashSet<Char>();for(c in nv)if(c in 'A'..'Z'&&s.add(c))sb.append(c);sb.toString()};else->u}}
-          val activePhrases=remember(phrases.size,customSigils.size,vowelMode){val list=phrases.map{transform(it)}.toMutableList();list.addAll(customSigils);if(list.isEmpty())list.add("CREATE MY REALITY");list}
-          if(showAddDialog){AlertDialog(onDismissRequest={showAddDialog=false},title={Text("Add New Affirmation")},text={OutlinedTextField(value=dialogText,onValueChange={dialogText=it},label={Text("Affirmation phrase")})},confirmButton={Button(onClick={if(dialogText.isNotBlank()){phrases.add(0,dialogText.trim().uppercase());dialogText=""};showAddDialog=false}){Text("Add")}},dismissButton={Button(onClick={showAddDialog=false}){Text("Cancel")}})}
-          if(showEditDialog){AlertDialog(onDismissRequest={showEditDialog=false},title={Text("Edit Affirmation")},text={OutlinedTextField(value=dialogText,onValueChange={dialogText=it},label={Text("Modify phrase")})},confirmButton={Button(onClick={if(dialogText.isNotBlank()&&selIdx in phrases.indices){phrases[selIdx]=dialogText.trim().uppercase();dialogText=""};showEditDialog=false}){Text("Save")}},dismissButton={Button(onClick={showEditDialog=false}){Text("Cancel")}})}
-          if(showSigilDialog){AlertDialog(onDismissRequest={showSigilDialog=false},title={Text("Add Custom Sigil Magic")},text={Column{Text("Enter your own hand-crafted sigil letters/symbols:",fontSize=11.sp,color=Color.Gray);Spacer(Modifier.height(4.dp));OutlinedTextField(value=dialogText,onValueChange={dialogText=it},label={Text("Custom Sigil")})}},confirmButton={Button(onClick={if(dialogText.isNotBlank()){customSigils.add(0,dialogText.trim().uppercase());dialogText=""};showSigilDialog=false}){Text("Add Sigil")}},dismissButton={Button(onClick={showSigilDialog=false}){Text("Cancel")}})}
-          if(videoActive){
-          SacredVideoSession(activePhrases,(intervalSec*1000).toLong(),durationMs.toLong(),contrast,colors[colIdx].first,fontSize,fonts[fontIdx].first){AudioTrackEngine.stop();videoActive=false}
-          }else{
-          Scaffold(topBar={Column{Surface(color=Color(0xFF0F172A)){Row(Modifier.fillMaxWidth().padding(horizontal=12.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically){Text("POWER MIND SUBLIMINAL",fontWeight=FontWeight.Bold,color=Color.White,fontSize=15.sp);Spacer(Modifier.weight(1f));Text("v3.1 Desktop",color=Color(0xFF38BDF8),fontSize=11.sp)}}
-          Row(Modifier.fillMaxWidth().background(Color(0xFF1E293B)).padding(horizontal=12.dp,vertical=4.dp),horizontalArrangement=Arrangement.spacedBy(16.dp)){Text("File",color=Color.LightGray,fontSize=12.sp);Text("Settings",color=Color.LightGray,fontSize=12.sp);Text("Help",color=Color.LightGray,fontSize=12.sp)}}}){pad->
-          LazyColumn(Modifier.fillMaxSize().background(Color(0xFF090D16)).padding(pad).padding(12.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
-          item{Card(colors=CardDefaults.cardColors(containerColor=Color(0xFF131C2E))){Column(Modifier.padding(10.dp)){
-          Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){Text("Affirmations (${phrases.size})",fontWeight=FontWeight.Bold,fontSize=13.sp,color=Color.White);Spacer(Modifier.weight(1f))
-          Button(onClick={dialogText="";showAddDialog=true},contentPadding=PaddingValues(horizontal=6.dp,vertical=2.dp),modifier=Modifier.height(28.dp)){Text("+ New",fontSize=11.sp)}
-          Spacer(Modifier.width(4.dp))
-          Button(onClick={if(selIdx in phrases.indices){dialogText=phrases[selIdx];showEditDialog=true}},contentPadding=PaddingValues(horizontal=6.dp,vertical=2.dp),modifier=Modifier.height(28.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF475569))){Text("Edit",fontSize=11.sp)}
-          Spacer(Modifier.width(4.dp))
-          Button(onClick={if(phrases.size>1&&selIdx in phrases.indices)phrases.removeAt(selIdx)},contentPadding=PaddingValues(horizontal=6.dp,vertical=2.dp),modifier=Modifier.height(28.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFFDC2626))){Text("Delete",fontSize=11.sp)}}
-          Spacer(Modifier.height(6.dp))
-          Box(Modifier.fillMaxWidth().height(130.dp).background(Color(0xFF0B111C),RoundedCornerShape(6.dp)).border(1.dp,Color(0xFF1E293B),RoundedCornerShape(6.dp))){
-          Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(4.dp)){
-          phrases.forEachIndexed{i,phrase->val isSel=selIdx==i
-          Row(Modifier.fillMaxWidth().background(if(isSel)Color(0xFF1E3A5F) else Color.Transparent,RoundedCornerShape(4.dp)).clickable{selIdx=i}.padding(6.dp)){
-          Text("${i+1}. $phrase",fontSize=11.sp,color=if(isSel)Color(0xFF38BDF8) else Color.LightGray)}}}}
-          if(customSigils.isNotEmpty()){Text("Custom Sigils (${customSigils.size}): "+customSigils.joinToString(", "),fontSize=11.sp,color=Color(0xFF38BDF8),modifier=Modifier.padding(top=4.dp))}
-          }}}
-          item{Card(colors=CardDefaults.cardColors(containerColor=Color(0xFF131C2E))){Column(Modifier.padding(10.dp)){
-          Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){Text("Transformation & Custom Sigil",fontWeight=FontWeight.Bold,fontSize=13.sp,color=Color.White);Spacer(Modifier.weight(1f))
-          Button(onClick={dialogText="";showSigilDialog=true},contentPadding=PaddingValues(horizontal=6.dp,vertical=2.dp),modifier=Modifier.height(26.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF7C3AED))){Text("+ Custom Sigil",fontSize=10.sp)}}
+          val fonts=listOf(FontFamily.Monospace to "Mono/Tahoma",FontFamily.SansSerif to "Sans",FontFamily.Serif to "Serif",FontFamily.Cursive to "Script")
           val modes=listOf("All Vowels Removed","A & I Removed","Keep A & I","Sigil Magic (Auto)","Raw")
-          Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top=4.dp),horizontalArrangement=Arrangement.spacedBy(6.dp)){modes.forEachIndexed{i,name->FilterChip(selected=vowelMode==i,onClick={vowelMode=i},label={Text(name,fontSize=11.sp)})}}
-          Row(Modifier.fillMaxWidth().clickable{mirrorMode=!mirrorMode}.padding(top=4.dp),verticalAlignment=Alignment.CenterVertically){Checkbox(checked=mirrorMode,onCheckedChange={mirrorMode=it});Text("Mirrored Red-Letter Sigil (Page 26)",fontSize=12.sp,color=Color.LightGray)}}}}
+          fun transform(text:String):String{val u=text.uppercase().trim();return when(modeIdx){0->u.replace(Regex("[AEIOU]"),"");1->u.replace(Regex("[AI]"),"");2->u.replace(Regex("[EOU]"),"");3->{val nv=u.replace(Regex("[AEIOU\\s]"),"");val sb=StringBuilder();val s=HashSet<Char>();for(c in nv)if(c in 'A'..'Z'&&s.add(c))sb.append(c);sb.toString()};else->u}}
+          val activePool=remember(checkedCats.toList(),customWords.toList(),customSigils.toList(),modeIdx){val pool=mutableListOf<String>();checkedCats.forEach{if(it in categories.indices)pool.addAll(categories[it].second.map{w->transform(w)})};pool.addAll(customWords.map{w->transform(w)});pool.addAll(customSigils);if(pool.isEmpty())pool.add("CREATE MY REALITY");pool}
+          if(session){var flash by remember{mutableStateOf("")};var vis by remember{mutableStateOf(false)}
+          LaunchedEffect(activePool,interval,duration){while(true){delay(interval);flash=if(activePool.isNotEmpty())activePool.random() else "CREATE MY REALITY";vis=true;delay(duration);vis=false}}
+          val bg=if(colIdx==1)Color.White else Color.Black
+          Box(Modifier.fillMaxSize().background(bg).clickable{session=false},Alignment.Center){
+          if(vis)Text(flash,color=colors[colIdx].first.copy(alpha=if(opacity<0.02f)0.05f else opacity),fontSize=fontSize.sp,fontFamily=fonts[fontIdx].first,fontWeight=FontWeight.Bold,textAlign=TextAlign.Center,modifier=Modifier.padding(24.dp))
+          Text("Tap to exit session",color=if(colIdx==1)Color.DarkGray else Color.Gray,modifier=Modifier.align(Alignment.BottomCenter).padding(24.dp))};return}
+          Scaffold(topBar={Surface(color=Color(0xFF0F172A)){Row(Modifier.fillMaxWidth().padding(horizontal=12.dp,vertical=10.dp),verticalAlignment=Alignment.CenterVertically){Text("POWER MIND SUBLIMINAL",fontWeight=FontWeight.Bold,color=Color.White,fontSize=15.sp);Spacer(Modifier.weight(1f));Text("Total: ${activePool.size} phrases",color=Color(0xFF38BDF8),fontSize=11.sp)}}}){pad->
+          LazyColumn(Modifier.fillMaxSize().background(Color(0xFF090D16)).padding(pad).padding(12.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
+          item{val cardBg=if(colIdx==1)Color.White else Color(0xFF1E293B)
+          val previewText=remember(activePool.size,modeIdx){if(activePool.isNotEmpty())activePool.first() else "CREATE MY REALITY"}
+          Card(colors=CardDefaults.cardColors(containerColor=Color(0xFF131C2E))){Column(Modifier.padding(10.dp)){
+          Text("LIVE PREVIEW",fontWeight=FontWeight.Bold,fontSize=11.sp,color=Color.Gray)
+          Box(Modifier.fillMaxWidth().height(60.dp).background(cardBg,RoundedCornerShape(6.dp)).border(1.dp,Color.Gray,RoundedCornerShape(6.dp)),Alignment.Center){Text(previewText,color=colors[colIdx].first.copy(alpha=if(opacity<0.15f)0.8f else opacity),fontSize=fontSize.sp,fontFamily=fonts[fontIdx].first,fontWeight=FontWeight.Bold)}
+          Text("${fontSize.toInt()}sp • ${(opacity*100).toInt()}% opacity • ${activePool.size} active phrases in queue",fontSize=11.sp,color=Color.LightGray,modifier=Modifier.padding(top=4.dp))}}}
           item{Card(colors=CardDefaults.cardColors(containerColor=Color(0xFF131C2E))){Column(Modifier.padding(10.dp)){
-          Text("Message Display",fontWeight=FontWeight.Bold,fontSize=13.sp,color=Color.White)
-          Row(Modifier.fillMaxWidth().clickable{randomDisplay=false},verticalAlignment=Alignment.CenterVertically){RadioButton(selected=!randomDisplay,onClick={randomDisplay=false});Text("Centered on the screen",fontSize=12.sp,color=Color.LightGray)}
-          Row(Modifier.fillMaxWidth().clickable{randomDisplay=true},verticalAlignment=Alignment.CenterVertically){RadioButton(selected=randomDisplay,onClick={randomDisplay=true});Text("Randomly on the screen (Peripheral)",fontSize=12.sp,color=Color.LightGray)}}}}
+          Text("1. Affirmation Categories (Decide Which To Use)",fontWeight=FontWeight.Bold,fontSize=13.sp,color=Color.White)
+          categories.forEachIndexed{i,pair->val isChecked=checkedCats.contains(i)
+          Row(Modifier.fillMaxWidth().clickable{if(isChecked)checkedCats.remove(i) else checkedCats.add(i)},verticalAlignment=Alignment.CenterVertically){
+          Checkbox(checked=isChecked,onCheckedChange={if(it)checkedCats.add(i) else checkedCats.remove(i)})
+          Text("${pair.first} (${pair.second.size})",fontSize=12.sp,color=if(isChecked)Color(0xFF38BDF8) else Color.LightGray)}}}}}
           item{Card(colors=CardDefaults.cardColors(containerColor=Color(0xFF131C2E))){Column(Modifier.padding(10.dp)){
-          Text("Font & Sample Box",fontWeight=FontWeight.Bold,fontSize=13.sp,color=Color.White)
-          val sampleBg=if(colIdx==1)Color.White else Color(0xFF1E293B)
-          val previewText=remember(phrases.size,selIdx,vowelMode){if(selIdx in phrases.indices)transform(phrases[selIdx]) else "CRTE MY RLTY"}
-          Box(Modifier.fillMaxWidth().height(65.dp).background(sampleBg,RoundedCornerShape(6.dp)).border(1.dp,Color.Gray,RoundedCornerShape(6.dp)),Alignment.Center){Text(previewText,color=colors[colIdx].first.copy(alpha=if(contrast<0.2f)0.85f else contrast),fontSize=fontSize.sp,fontFamily=fonts[fontIdx].first,fontWeight=FontWeight.Bold)}
-          Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top=6.dp),horizontalArrangement=Arrangement.spacedBy(6.dp)){colors.forEachIndexed{i,pair->FilterChip(selected=colIdx==i,onClick={colIdx=i},label={Text(pair.second,color=if(i==1)Color(0xFF90CAF9) else pair.first)})}}
-          Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top=4.dp),horizontalArrangement=Arrangement.spacedBy(6.dp)){fonts.forEachIndexed{i,pair->FilterChip(selected=fontIdx==i,onClick={fontIdx=i},label={Text(pair.second)})}}
-          Text("Font Size: ${fontSize.toInt()}pt",fontSize=11.sp,color=Color.LightGray,modifier=Modifier.padding(top=6.dp))
-          Slider(fontSize,{fontSize=it},valueRange=14f..48f)}}}
+          Text("2. Add Custom Words & Phrases",fontWeight=FontWeight.Bold,fontSize=13.sp,color=Color.White)
+          Row(Modifier.fillMaxWidth().padding(top=4.dp),verticalAlignment=Alignment.CenterVertically){
+          OutlinedTextField(value=customWordInput,onValueChange={customWordInput=it},label={Text("Type custom words / phrase")},modifier=Modifier.weight(1f).height(54.dp))
+          Spacer(Modifier.width(6.dp))
+          Button(onClick={if(customWordInput.isNotBlank()){customWords.add(customWordInput.trim().uppercase());customWordInput=""}},modifier=Modifier.height(44.dp)){Text("Add")}}
+          if(customWords.isNotEmpty()){Text("Your Words (${customWords.size}): "+customWords.joinToString(", "),fontSize=11.sp,color=Color(0xFF38BDF8),modifier=Modifier.padding(top=4.dp))}}}}
           item{Card(colors=CardDefaults.cardColors(containerColor=Color(0xFF131C2E))){Column(Modifier.padding(10.dp)){
-          Text("Display Contrast: ${(contrast*100).toInt()}% (Doc rec: 3%)",fontWeight=FontWeight.Bold,fontSize=12.sp,color=Color.White)
-          Slider(contrast,{contrast=it},valueRange=0.02f..1.0f)
-          Text("Frequency (Timing Controls)",fontWeight=FontWeight.Bold,fontSize=12.sp,color=Color.White,modifier=Modifier.padding(top=6.dp))
-          Text("Display every: ${(intervalSec*10).toInt()/10f}s (${(intervalSec*1000).toInt()}ms)",fontSize=11.sp,color=Color.LightGray)
-          Slider(intervalSec,{intervalSec=it},valueRange=0.1f..3.0f)
-          Text("Display for: ${durationMs.toInt()}ms (Doc rec: 10ms)",fontSize=11.sp,color=Color.LightGray)
-          Slider(durationMs,{durationMs=it},valueRange=8f..300f)}}}
+          Text("3. Multiple Choice Transformation Mode",fontWeight=FontWeight.Bold,fontSize=13.sp,color=Color.White)
+          Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top=4.dp),horizontalArrangement=Arrangement.spacedBy(6.dp)){
+          modes.forEachIndexed{i,name->FilterChip(selected=modeIdx==i,onClick={modeIdx=i},label={Text(name,fontSize=11.sp)})}}
+          Row(Modifier.fillMaxWidth().clickable{mirrorMode=!mirrorMode}.padding(top=4.dp),verticalAlignment=Alignment.CenterVertically){
+          Checkbox(checked=mirrorMode,onCheckedChange={mirrorMode=it})
+          Text("Mirrored Red-Letter Sigil (Page 26)",fontSize=12.sp,color=Color.LightGray)}
+          Text("Add My Own Sigil Magic:",fontWeight=FontWeight.Bold,fontSize=12.sp,color=Color(0xFFC084FC),modifier=Modifier.padding(top=6.dp))
+          Row(Modifier.fillMaxWidth().padding(top=2.dp),verticalAlignment=Alignment.CenterVertically){
+          OutlinedTextField(value=customSigilInput,onValueChange={customSigilInput=it},label={Text("Enter direct custom sigil")},modifier=Modifier.weight(1f).height(54.dp))
+          Spacer(Modifier.width(6.dp))
+          Button(onClick={if(customSigilInput.isNotBlank()){customSigils.add(customSigilInput.trim().uppercase());customSigilInput=""}},modifier=Modifier.height(44.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF7C3AED))){Text("Add Sigil")}}
+          if(customSigils.isNotEmpty()){Text("Custom Sigils: "+customSigils.joinToString(", "),fontSize=11.sp,color=Color(0xFFC084FC),modifier=Modifier.padding(top=4.dp))}}}}
           item{Card(colors=CardDefaults.cardColors(containerColor=Color(0xFF131C2E))){Column(Modifier.padding(10.dp)){
-          Text("Music Options (528Hz Harmonic Tone)",fontWeight=FontWeight.Bold,fontSize=12.sp,color=Color.White)
-          Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(16.dp)){
-          Row(Modifier.clickable{musicOn=true;AudioTrackEngine.start()},verticalAlignment=Alignment.CenterVertically){RadioButton(selected=musicOn,onClick={musicOn=true;AudioTrackEngine.start()});Text("Turn on",fontSize=12.sp,color=Color.LightGray)}
-          Row(Modifier.clickable{musicOn=false;AudioTrackEngine.stop()},verticalAlignment=Alignment.CenterVertically){RadioButton(selected=!musicOn,onClick={musicOn=false;AudioTrackEngine.stop()});Text("Turn off",fontSize=12.sp,color=Color.LightGray)}}}}}
-          item{Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)){
-          Button(onClick={videoActive=true},colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF0284C7)),modifier=Modifier.weight(1f).height(44.dp)){Text("▶ VIDEO",fontSize=11.sp,fontWeight=FontWeight.Bold)}
-          Button(onClick={intervalSec=0.4f;durationMs=10f;contrast=0.03f;randomDisplay=false;colIdx=0;fontSize=20f;vowelMode=0;mirrorMode=false},colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF475569)),modifier=Modifier.weight(1.3f).height(44.dp)){Text("Restore Default",fontSize=11.sp)}
+          Text("4. Timing, Size & Appearance",fontWeight=FontWeight.Bold,fontSize=13.sp,color=Color.White)
+          Text("Text Color:",fontSize=11.sp,color=Color.LightGray,modifier=Modifier.padding(top=4.dp))
+          Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)){
+          colors.forEachIndexed{i,p->FilterChip(selected=colIdx==i,onClick={colIdx=i},label={Text(p.second,color=if(i==1)Color(0xFF90CAF9) else p.first)})}}
+          Text("Font Style:",fontSize=11.sp,color=Color.LightGray,modifier=Modifier.padding(top=4.dp))
+          Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)){
+          fonts.forEachIndexed{i,p->FilterChip(selected=fontIdx==i,onClick={fontIdx=i},label={Text(p.second)})}}
+          Text("Text Size: ${fontSize.toInt()}sp",fontSize=11.sp,color=Color.LightGray,modifier=Modifier.padding(top=4.dp))
+          Slider(fontSize,{fontSize=it},valueRange=14f..48f)
+          Text("Contrast / Opacity: ${(opacity*100).toInt()}% (Doc rec: 3%)",fontSize=11.sp,color=Color.LightGray)
+          Slider(opacity,{opacity=it},valueRange=0.02f..1.0f)
+          Text("Flash Every: ${interval}ms",fontSize=11.sp,color=Color.LightGray)
+          Slider(interval.toFloat(),{interval=it.toLong()},valueRange=100f..2500f)
+          Text("Flash Duration: ${duration}ms (Doc rec: 10ms)",fontSize=11.sp,color=Color.LightGray)
+          Slider(duration.toFloat(),{duration=it.toLong()},valueRange=8f..300f)
+          Row(Modifier.fillMaxWidth().clickable{randomPos=!randomPos},verticalAlignment=Alignment.CenterVertically){
+          Checkbox(checked=randomPos,onCheckedChange={randomPos=it})
+          Text("Random Peripheral Screen Placement",fontSize=12.sp,color=Color.LightGray)}}}}
+          item{Button(onClick={session=true},modifier=Modifier.fillMaxWidth().height(48.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF00897B))){Text("START IN-APP SESSION",fontWeight=FontWeight.Bold)}
+          Spacer(Modifier.height(6.dp))
           Button(onClick={if(Build.VERSION.SDK_INT>=23&&!Settings.canDrawOverlays(ctx)){ctx.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,Uri.parse("package:${ctx.packageName}")))}else{
-          val it=Intent(ctx,SubliminalOverlayService::class.java).apply{putExtra("P",activePhrases.toTypedArray());putExtra("C",colorInts[colIdx]);putExtra("S",fontSize);putExtra("F",fontIdx);putExtra("I",(intervalSec*1000).toLong());putExtra("D",durationMs.toLong());putExtra("A",contrast);putExtra("RND",randomDisplay);putExtra("MIR",mirrorMode)}
-          if(!overlayActive){ctx.startService(it);overlayActive=true}else{ctx.stopService(it);overlayActive=false}}},colors=ButtonDefaults.buttonColors(containerColor=if(overlayActive)Color(0xFFDC2626) else Color(0xFF16A34A)),modifier=Modifier.weight(1f).height(44.dp)){Text(if(overlayActive)"Stop" else "Apply",fontWeight=FontWeight.Bold)}}
+          val it=Intent(ctx,SubliminalOverlayService::class.java).apply{putExtra("P",activePool.toTypedArray());putExtra("C",colorInts[colIdx]);putExtra("S",fontSize);putExtra("F",fontIdx);putExtra("I",interval);putExtra("D",duration);putExtra("A",opacity);putExtra("RND",randomPos);putExtra("MIR",mirrorMode)}
+          if(!overlayActive){ctx.startService(it);overlayActive=true}else{ctx.stopService(it);overlayActive=false}}},modifier=Modifier.fillMaxWidth().height(48.dp),colors=ButtonDefaults.buttonColors(containerColor=if(overlayActive)Color(0xFFDC2626) else Color(0xFF1E88E5))){Text(if(overlayActive)"STOP OVERLAY" else "LAUNCH SYSTEM OVERLAY",fontWeight=FontWeight.Bold)}
           Spacer(Modifier.height(16.dp))}}}}}
-          @Composable fun SacredVideoSession(phrases:List<String>,interval:Long,duration:Long,contrast:Float,color:Color,fSize:Float,font:FontFamily,onClose:()->Unit){
-          var text by remember{mutableStateOf("")};var vis by remember{mutableStateOf(false)}
-          LaunchedEffect(phrases,interval,duration){while(true){delay(interval);text=phrases.random();vis=true;delay(duration);vis=false}}
-          val rot by rememberInfiniteTransition(label="").animateFloat(0f,360f,infiniteRepeatable(tween(24000,easing=LinearEasing)),label="")
-          Box(Modifier.fillMaxSize().background(Color.Black),Alignment.Center){
-          Canvas(Modifier.fillMaxSize().rotate(rot)){val c=Offset(size.width/2,size.height/2);val r=size.minDimension*0.35f
-          for(i in 1..4)drawCircle(Color(0xFF00E5FF).copy(alpha=0.12f),r*(i/4f),c,style=Stroke(2.dp.toPx()))
-          val p=Path().apply{moveTo(c.x,c.y-r);lineTo(c.x+r*cos(Math.toRadians(30.0)).toFloat(),c.y+r*sin(Math.toRadians(30.0)).toFloat());lineTo(c.x-r*cos(Math.toRadians(30.0)).toFloat(),c.y+r*sin(Math.toRadians(30.0)).toFloat());close()}
-          drawPath(p,Color.White.copy(alpha=0.25f),style=Stroke(3.dp.toPx()))}
-          if(vis)Text(text,color=color.copy(alpha=if(contrast<0.05f)0.05f else contrast),fontSize=fSize.sp,fontFamily=font,fontWeight=FontWeight.Bold)
-          IconButton(onClick=onClose,modifier=Modifier.align(Alignment.TopEnd).padding(16.dp)){Text("✕",color=Color.White,fontSize=24.sp,fontWeight=FontWeight.Bold)}}}
           EOF
       - run: gradle assembleDebug --stacktrace --no-daemon
       - uses: actions/upload-artifact@v4
