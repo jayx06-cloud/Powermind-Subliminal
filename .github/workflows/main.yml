@@ -21,7 +21,7 @@ jobs:
           echo 'plugins{id("com.android.application") version "8.7.2" apply false;id("org.jetbrains.kotlin.android") version "2.0.21" apply false;id("org.jetbrains.kotlin.plugin.compose") version "2.0.21" apply false}' > build.gradle.kts
           cat << 'EOF' > app/build.gradle.kts
           plugins{id("com.android.application");id("org.jetbrains.kotlin.android");id("org.jetbrains.kotlin.plugin.compose")}
-          android{namespace="com.powermind.subliminal";compileSdk=34;defaultConfig{applicationId="com.powermind.subliminal";minSdk=26;targetSdk=34;versionCode=42;versionName="12.0"};buildTypes{release{isMinifyEnabled=false}};compileOptions{sourceCompatibility=JavaVersion.VERSION_17;targetCompatibility=JavaVersion.VERSION_17};kotlinOptions{jvmTarget="17";freeCompilerArgs+=listOf("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")};buildFeatures{compose=true};packaging{resources{excludes+="/META-INF/{AL2.0,LGPL2.1}"};jniLibs{useLegacyPackaging=true;keepDebugSymbols+="**/*.so"}}}
+          android{namespace="com.powermind.subliminal";compileSdk=34;defaultConfig{applicationId="com.powermind.subliminal";minSdk=26;targetSdk=34;versionCode=45;versionName="13.0"};buildTypes{release{isMinifyEnabled=false}};compileOptions{sourceCompatibility=JavaVersion.VERSION_17;targetCompatibility=JavaVersion.VERSION_17};kotlinOptions{jvmTarget="17";freeCompilerArgs+=listOf("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")};buildFeatures{compose=true};packaging{resources{excludes+="/META-INF/{AL2.0,LGPL2.1}"};jniLibs{useLegacyPackaging=true;keepDebugSymbols+="**/*.so"}}}
           dependencies{implementation("androidx.core:core-ktx:1.13.1");implementation("androidx.activity:activity-compose:1.9.3");implementation(platform("androidx.compose:compose-bom:2024.10.00"));implementation("androidx.compose.ui:ui");implementation("androidx.compose.material3:material3")}
           EOF
           cat << 'EOF' > app/src/main/res/drawable/ic_launcher.xml
@@ -40,10 +40,11 @@ jobs:
           EOF
           cat << 'EOF' > app/src/main/java/com/powermind/subliminal/SubliminalOverlayService.kt
           package com.powermind.subliminal
-          import android.app.*;import android.content.*;import android.graphics.*;import android.os.*;import android.text.*;import android.text.style.ForegroundColorSpan;import android.view.*;import android.widget.TextView;import androidx.core.app.NotificationCompat;import kotlin.random.Random
-          class SubliminalOverlayService:Service(){
+          import android.app.*;import android.content.*;import android.graphics.*;import android.os.*;import android.speech.tts.TextToSpeech;import android.text.*;import android.text.style.ForegroundColorSpan;import android.view.*;import android.widget.TextView;import androidx.core.app.NotificationCompat;import kotlin.random.Random
+          class SubliminalOverlayService:Service(),TextToSpeech.OnInitListener{
           private var wm:WindowManager?=null;private var v:TextView?=null;private var p:WindowManager.LayoutParams?=null;private val h=Handler(Looper.getMainLooper());private var run=false
-          private var list=listOf("MUST STAY FOCUSED","CREATE MY REALITY","MONEY MAGNET");private var cols=intArrayOf(Color.WHITE);private var fnts=intArrayOf(0);private var sz=28f;private var iv=400L;private var dur=10L;private var alp=0.03f;private var rnd=true;private var jit=true;private var pyFoc=true;private var altSigil=true;private var isUpright=true
+          private var list=listOf("MUST STAY FOCUSED","CREATE MY REALITY","MONEY MAGNET");private var cols=intArrayOf(Color.WHITE);private var fnts=intArrayOf(0);private var sz=28f;private var iv=400L;private var dur=10L;private var alp=0.03f;private var rnd=true;private var jit=true;private var pyFoc=true;private var altSigil=true;private var isUpright=true;private var audioSync=true;private var audioVol=0.12f
+          private var tts:TextToSpeech?=null;private var ttsReady=false
           override fun onBind(i:Intent?)=null
           override fun onCreate(){super.onCreate()
           if(Build.VERSION.SDK_INT>=26){getSystemService(NotificationManager::class.java)?.createNotificationChannel(NotificationChannel("pm","PM",NotificationManager.IMPORTANCE_LOW))}
@@ -53,9 +54,11 @@ jobs:
           p=WindowManager.LayoutParams(WindowManager.LayoutParams.WRAP_CONTENT,WindowManager.LayoutParams.WRAP_CONTENT,t,
           WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED,
           PixelFormat.TRANSLUCENT).apply{gravity=Gravity.CENTER}
-          v=TextView(this).apply{textSize=26f;setTextColor(Color.WHITE);visibility=View.GONE};wm?.addView(v,p)}
+          v=TextView(this).apply{textSize=26f;setTextColor(Color.WHITE);visibility=View.GONE};wm?.addView(v,p)
+          tts=TextToSpeech(this,this)}
+          override fun onInit(s:Int){if(s==TextToSpeech.SUCCESS){tts?.setSpeechRate(1.9f);tts?.setPitch(0.95f);ttsReady=true}}
           override fun onStartCommand(intent:Intent?,flags:Int,id:Int):Int{
-          intent?.let{list=it.getStringArrayExtra("P")?.toList()?:list;cols=it.getIntArrayExtra("COLS")?:cols;fnts=it.getIntArrayExtra("FNTS")?:fnts;sz=it.getFloatExtra("S",28f);iv=it.getLongExtra("I",400L);dur=it.getLongExtra("D",10L);alp=it.getFloatExtra("A",0.03f);rnd=it.getBooleanExtra("RND",true);altSigil=it.getBooleanExtra("ALT",true);jit=it.getBooleanExtra("JIT",true);pyFoc=it.getBooleanExtra("PYR",true)}
+          intent?.let{list=it.getStringArrayExtra("P")?.toList()?:list;cols=it.getIntArrayExtra("COLS")?:cols;fnts=it.getIntArrayExtra("FNTS")?:fnts;sz=it.getFloatExtra("S",28f);iv=it.getLongExtra("I",400L);dur=it.getLongExtra("D",10L);alp=it.getFloatExtra("A",0.03f);rnd=it.getBooleanExtra("RND",true);altSigil=it.getBooleanExtra("ALT",true);jit=it.getBooleanExtra("JIT",true);pyFoc=it.getBooleanExtra("PYR",true);audioSync=it.getBooleanExtra("AUD_SYNC",true);audioVol=it.getFloatExtra("AUD_VOL",0.12f)}
           if(!run){run=true;loop()};return START_STICKY}
           private fun loop(){if(!run||list.isEmpty())return
           val wait=if(jit)Random.nextLong((iv*0.85).toLong().coerceAtLeast(50L),(iv*1.15).toLong()) else iv
@@ -70,17 +73,18 @@ jobs:
           var idx=0;while(idx<s.length){val next=s.indexOf("\n",idx);val lineEnd=if(next!=-1)next else s.length;val mid=idx+(lineEnd-idx)/2
           if(mid<lineEnd)s.setSpan(ForegroundColorSpan(Color.RED),mid,lineEnd,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);if(next==-1)break;idx=next+1}
           text=s;textSize=sz;setTextColor(chosenCol);typeface=when(chosenFnt){1->Typeface.SANS_SERIF;2->Typeface.SERIF;3->Typeface.create("cursive",Typeface.NORMAL);else->Typeface.MONOSPACE};alpha=alp;visibility=View.VISIBLE}
+          if(audioSync&&ttsReady){val b=Bundle().apply{putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME,audioVol)};tts?.speak(phrase,TextToSpeech.QUEUE_FLUSH,b,"sub_speech")}
           p?.let{val m=resources.displayMetrics
           if(rnd){val isLeft=Random.nextBoolean();val xMin=if(isLeft)-m.widthPixels/3 else m.widthPixels/5;val xMax=if(isLeft)-m.widthPixels/5 else m.widthPixels/3;it.x=Random.nextInt(xMin,xMax)}else{it.x=0}
           it.y=if(pyFoc)(m.heightPixels*0.16f).toInt() else 0
           wm?.updateViewLayout(v,it)}
           if(dur<=16){Choreographer.getInstance().postFrameCallback{v?.visibility=View.GONE;loop()}}else{h.postDelayed({v?.visibility=View.GONE;loop()},dur)}},wait)}
-          override fun onDestroy(){super.onDestroy();run=false;h.removeCallbacksAndMessages(null);v?.let{wm?.removeView(it)}}}
+          override fun onDestroy(){super.onDestroy();run=false;h.removeCallbacksAndMessages(null);v?.let{wm?.removeView(it)};tts?.stop();tts?.shutdown()}}
           EOF
           cat << 'EOF' > app/src/main/java/com/powermind/subliminal/MainActivity.kt
           @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
           package com.powermind.subliminal
-          import android.content.*;import android.media.*;import android.net.Uri;import android.os.*;import android.provider.Settings;import android.view.WindowManager;import androidx.activity.ComponentActivity;import androidx.activity.compose.setContent
+          import android.content.*;import android.media.*;import android.net.Uri;import android.os.*;import android.provider.Settings;import android.speech.tts.TextToSpeech;import android.view.WindowManager;import androidx.activity.ComponentActivity;import androidx.activity.compose.setContent
           import androidx.compose.animation.core.*;import androidx.compose.foundation.*;import androidx.compose.foundation.layout.*;import androidx.compose.foundation.lazy.LazyColumn;import androidx.compose.foundation.shape.RoundedCornerShape;import androidx.compose.material3.*;import androidx.compose.runtime.*;import androidx.compose.ui.*;import androidx.compose.ui.draw.*;import androidx.compose.ui.geometry.Offset;import androidx.compose.ui.graphics.*;import androidx.compose.ui.graphics.drawscope.Stroke;import androidx.compose.ui.platform.LocalContext;import androidx.compose.ui.text.font.*;import androidx.compose.ui.text.style.*;import androidx.compose.ui.unit.*;import kotlinx.coroutines.delay;import kotlin.concurrent.thread;import kotlin.math.*
           object AudioTrackEngine{private var t:AudioTrack?=null;@Volatile private var p=false;fun start(){stop();p=true;thread{val sr=44100;val b=AudioTrack.getMinBufferSize(sr,AudioFormat.CHANNEL_OUT_STEREO,AudioFormat.ENCODING_PCM_16BIT);t=AudioTrack.Builder().setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build()).setAudioFormat(AudioFormat.Builder().setSampleRate(sr).setChannelMask(AudioFormat.CHANNEL_OUT_STEREO).setEncoding(AudioFormat.ENCODING_PCM_16BIT).build()).setBufferSizeInBytes(b).setTransferMode(AudioTrack.MODE_STREAM).build();t?.play();val buf=ShortArray(b);var aL=0.0;var aR=0.0;var aOM=0.0;val fL=528.0;val fR=534.0;val fOM=136.1;while(p){var i=0;while(i<buf.size-1){val om=sin(aOM)*3200.0;buf[i]=((sin(aL)*4600.0)+om).toInt().coerceIn(-32767,32767).toShort();buf[i+1]=((sin(aR)*4600.0)+om).toInt().coerceIn(-32767,32767).toShort();aL+=2.0*Math.PI*fL/sr;aR+=2.0*Math.PI*fR/sr;aOM+=2.0*Math.PI*fOM/sr;i+=2};t?.write(buf,0,buf.size)};try{t?.stop();t?.release()}catch(e:Exception){}}};fun stop(){p=false}}
           class MainActivity:ComponentActivity(){override fun onCreate(s:Bundle?){super.onCreate(s);if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.O_MR1){setShowWhenLocked(true);setTurnScreenOn(true)}else{@Suppress("DEPRECATION") window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON)};window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);setContent{MaterialTheme(colorScheme=darkColorScheme()){DesktopApp()}}}}
@@ -100,7 +104,8 @@ jobs:
           var jitterMode by remember{mutableStateOf(true)}
           var pyramidFocal by remember{mutableStateOf(true)}
           var dualPillars by remember{mutableStateOf(true)}
-          var runeMode by remember{mutableStateOf(true)}
+          var audioSync by remember{mutableStateOf(true)}
+          var audioVol by remember{mutableStateOf(0.12f)}
           var showNewDialog by remember{mutableStateOf(false)}
           var showAbout by remember{mutableStateOf(false)}
           var newPhraseText by remember{mutableStateOf("")}
@@ -114,11 +119,11 @@ jobs:
           val activePhrases=remember(checkedCats.toMap(),selModes.toMap()){val pool=mutableListOf<String>();checkedCats.forEach{if(it.value)pool.addAll(categories[it.key].second)};if(pool.isEmpty())pool.add("CREATE MY REALITY");val activeModes=selModes.filter{it.value}.keys;val res=mutableListOf<String>();for(p in pool){val u=p.uppercase().trim();if(activeModes.isEmpty())res.add(transformMode(u,0)) else for(m in activeModes)res.add(transformMode(u,m))};res}
           val activeColorInts=remember(selColors.toMap()){val l=selColors.filter{it.value}.keys.map{colorInts[it]};if(l.isEmpty())intArrayOf(android.graphics.Color.WHITE) else l.toIntArray()}
           val activeFontIndices=remember(selFonts.toMap()){val l=selFonts.filter{it.value}.keys.toList();if(l.isEmpty())intArrayOf(0) else l.toIntArray()}
-          fun applyMaxRecommended(){intervalSec=0.4f;durationMs=10f;contrast=0.03f;randomDisplay=true;jitterMode=true;altSigilMode=true;pyramidFocal=true;dualPillars=true;runeMode=true;fontSize=20f;selModes.clear();selModes[0]=true;selModes[2]=true;selColors.clear();selColors[0]=true;selColors[2]=true;selColors[6]=true;selFonts.clear();selFonts[0]=true;selFonts[1]=true;musicOn=true;AudioTrackEngine.start()}
+          fun applyMaxRecommended(){intervalSec=0.4f;durationMs=10f;contrast=0.03f;randomDisplay=true;jitterMode=true;altSigilMode=true;pyramidFocal=true;dualPillars=true;audioSync=true;audioVol=0.12f;fontSize=20f;selModes.clear();selModes[0]=true;selModes[2]=true;selColors.clear();selColors[0]=true;selColors[2]=true;selColors[6]=true;selFonts.clear();selFonts[0]=true;selFonts[1]=true;musicOn=true;AudioTrackEngine.start()}
           if(showNewDialog){AlertDialog(onDismissRequest={showNewDialog=false},title={Text("Add Custom Phrase")},text={Column{OutlinedTextField(value=newPhraseText,onValueChange={newPhraseText=it},label={Text("Affirmation phrase")});Spacer(Modifier.height(8.dp));Text("Add to Program:",fontSize=11.sp,color=Color.Gray);Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())){categories.forEachIndexed{i,p->FilterChip(selected=targetCatIdx==i,onClick={targetCatIdx=i},label={Text(p.first,fontSize=10.sp)})}}}},confirmButton={Button(onClick={if(newPhraseText.isNotBlank()){categories[targetCatIdx].second.add(0,newPhraseText.trim().uppercase());newPhraseText=""};showNewDialog=false}){Text("Add")}},dismissButton={Button(onClick={showNewDialog=false}){Text("Cancel")}})}
           if(showAbout){AboutGuideDialog{showAbout=false}}
           if(videoActive){
-          SacredVideoSession(activePhrases,(intervalSec*1000).toLong(),durationMs.toLong(),contrast,activeColorInts,fontSize,activeFontIndices,fonts,jitterMode,pyramidFocal,dualPillars,altSigilMode){AudioTrackEngine.stop();videoActive=false}
+          SacredVideoSession(activePhrases,(intervalSec*1000).toLong(),durationMs.toLong(),contrast,activeColorInts,fontSize,activeFontIndices,fonts,jitterMode,pyramidFocal,dualPillars,altSigilMode,audioSync,audioVol){AudioTrackEngine.stop();videoActive=false}
           }else{
           Scaffold(topBar={Surface(color=Color(0xFF0F172A)){Row(Modifier.fillMaxWidth().padding(horizontal=12.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically){Text("POWER MIND SUBLIMINAL",fontWeight=FontWeight.Bold,color=Color.White,fontSize=14.sp);Spacer(Modifier.weight(1f));Button(onClick={showAbout=true},contentPadding=PaddingValues(horizontal=8.dp,vertical=2.dp),modifier=Modifier.height(28.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF0284C7))){Text("ℹ️ About & Guide",fontSize=11.sp)}}}}){pad->
           LazyColumn(Modifier.fillMaxSize().background(Color(0xFF090D16)).padding(pad).padding(12.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
@@ -127,7 +132,7 @@ jobs:
           Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){Text("Select Subliminal Programs",fontWeight=FontWeight.Bold,fontSize=13.sp,color=Color.White);Spacer(Modifier.weight(1f));Button(onClick={showNewDialog=true},contentPadding=PaddingValues(horizontal=8.dp,vertical=2.dp),modifier=Modifier.height(28.dp)){Text("+ New Phrase",fontSize=11.sp)}}
           categories.forEachIndexed{i,pair->Row(Modifier.fillMaxWidth().clickable{checkedCats[i]=!(checkedCats[i]?:true)},verticalAlignment=Alignment.CenterVertically){Checkbox(checked=checkedCats[i]?:true,onCheckedChange={checkedCats[i]=it});Text("${pair.first} (${pair.second.size})",fontSize=12.sp,color=Color.LightGray)}}}}}
           item{Card(colors=CardDefaults.cardColors(containerColor=Color(0xFF131C2E))){Column(Modifier.padding(10.dp)){
-          Text("Sigil, Transformation & Geometry Engine",fontWeight=FontWeight.Bold,fontSize=12.sp,color=Color.White)
+          Text("Sigil, Transformation & Audio-Visual Sync",fontWeight=FontWeight.Bold,fontSize=12.sp,color=Color.White)
           val modeNames=listOf("All Vowels Removed","Keep A & I","Sigil Magic (Auto)","Raw Affirmations")
           Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top=4.dp),horizontalArrangement=Arrangement.spacedBy(6.dp)){modeNames.forEachIndexed{i,name->FilterChip(selected=selModes[i]?:false,onClick={selModes[i]=!(selModes[i]?:false)},label={Text(name,fontSize=11.sp)})}}
           Row(Modifier.fillMaxWidth().clickable{altSigilMode=!altSigilMode}.padding(top=4.dp),verticalAlignment=Alignment.CenterVertically){Checkbox(checked=altSigilMode,onCheckedChange={altSigilMode=it});Text("Interchangeable Upright & Horizontal Red Sigils",fontSize=12.sp,color=Color(0xFFF87171))}
@@ -160,37 +165,43 @@ jobs:
           Text("Display for: ${durationMs.toInt()}ms (Doc rec: 10ms)",fontSize=11.sp,color=Color.LightGray)
           Slider(durationMs,{durationMs=it},valueRange=8f..300f)}}}
           item{Card(colors=CardDefaults.cardColors(containerColor=Color(0xFF131C2E))){Column(Modifier.padding(10.dp)){
-          Text("Audio: 528Hz DNA + 136.1Hz Cosmic OM (Video 1:23)",fontWeight=FontWeight.Bold,fontSize=12.sp,color=Color.White)
+          Text("Audio: 528Hz DNA + 136.1Hz OM + Subliminal TTS",fontWeight=FontWeight.Bold,fontSize=12.sp,color=Color.White)
           Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(16.dp)){
           Row(Modifier.clickable{musicOn=true;AudioTrackEngine.start()},verticalAlignment=Alignment.CenterVertically){RadioButton(selected=musicOn,onClick={musicOn=true;AudioTrackEngine.start()});Text("Turn on",fontSize=12.sp,color=Color.LightGray)}
-          Row(Modifier.clickable{musicOn=false;AudioTrackEngine.stop()},verticalAlignment=Alignment.CenterVertically){RadioButton(selected=!musicOn,onClick={musicOn=false;AudioTrackEngine.stop()});Text("Turn off",fontSize=12.sp,color=Color.LightGray)}}}}}
+          Row(Modifier.clickable{musicOn=false;AudioTrackEngine.stop()},verticalAlignment=Alignment.CenterVertically){RadioButton(selected=!musicOn,onClick={musicOn=false;AudioTrackEngine.stop()});Text("Turn off",fontSize=12.sp,color=Color.LightGray)}}
+          Row(Modifier.fillMaxWidth().clickable{audioSync=!audioSync}.padding(top=6.dp),verticalAlignment=Alignment.CenterVertically){Checkbox(checked=audioSync,onCheckedChange={audioSync=it});Text("Audio Subliminal Sync (Sub-Audible Whispers)",fontSize=12.sp,color=Color(0xFFFBBF24))}
+          Text("Whisper Volume: ${(audioVol*100).toInt()}% (Masked by 528Hz Drone)",fontSize=11.sp,color=Color.LightGray,modifier=Modifier.padding(top=4.dp))
+          Slider(audioVol,{audioVol=it},valueRange=0.04f..0.35f)}}}
           item{Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)){
           Button(onClick={videoActive=true},colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF0284C7)),modifier=Modifier.weight(1.1f).height(44.dp)){Text("▶ 5-MIN SESSION",fontSize=10.sp,fontWeight=FontWeight.Bold)}
-          Button(onClick={intervalSec=0.4f;durationMs=10f;contrast=0.03f;randomDisplay=true;jitterMode=true;altSigilMode=true;pyramidFocal=true;dualPillars=true;fontSize=20f;selModes.clear();selModes[0]=true;selModes[2]=true;selColors.clear();selColors[0]=true;selColors[2]=true;selColors[6]=true;selFonts.clear();selFonts[0]=true;musicOn=false;AudioTrackEngine.stop()},colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF475569)),modifier=Modifier.weight(1.2f).height(44.dp)){Text("Restore Default",fontSize=10.sp)}
+          Button(onClick={intervalSec=0.4f;durationMs=10f;contrast=0.03f;randomDisplay=true;jitterMode=true;altSigilMode=true;pyramidFocal=true;dualPillars=true;audioSync=true;audioVol=0.12f;fontSize=20f;selModes.clear();selModes[0]=true;selModes[2]=true;selColors.clear();selColors[0]=true;selColors[2]=true;selColors[6]=true;selFonts.clear();selFonts[0]=true;musicOn=false;AudioTrackEngine.stop()},colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF475569)),modifier=Modifier.weight(1.2f).height(44.dp)){Text("Restore Default",fontSize=10.sp)}
           Button(onClick={if(Build.VERSION.SDK_INT>=23&&!Settings.canDrawOverlays(ctx)){ctx.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,Uri.parse("package:${ctx.packageName}")))}else{
-          val it=Intent(ctx,SubliminalOverlayService::class.java).apply{putExtra("P",activePhrases.toTypedArray());putExtra("COLS",activeColorInts);putExtra("FNTS",activeFontIndices);putExtra("S",fontSize);putExtra("I",(intervalSec*1000).toLong());putExtra("D",durationMs.toLong());putExtra("A",contrast);putExtra("RND",randomDisplay);putExtra("ALT",altSigilMode);putExtra("JIT",jitterMode);putExtra("PYR",pyramidFocal)}
+          val it=Intent(ctx,SubliminalOverlayService::class.java).apply{putExtra("P",activePhrases.toTypedArray());putExtra("COLS",activeColorInts);putExtra("FNTS",activeFontIndices);putExtra("S",fontSize);putExtra("I",(intervalSec*1000).toLong());putExtra("D",durationMs.toLong());putExtra("A",contrast);putExtra("RND",randomDisplay);putExtra("ALT",altSigilMode);putExtra("JIT",jitterMode);putExtra("PYR",pyramidFocal);putExtra("AUD_SYNC",audioSync);putExtra("AUD_VOL",audioVol)}
           if(!overlayActive){ctx.startService(it);overlayActive=true}else{ctx.stopService(it);overlayActive=false}}},colors=ButtonDefaults.buttonColors(containerColor=if(overlayActive)Color(0xFFDC2626) else Color(0xFF16A34A)),modifier=Modifier.weight(1.1f).height(44.dp)){Text(if(overlayActive)"Stop" else "Apply (Lock Screen Active)",fontWeight=FontWeight.Bold,fontSize=10.sp)}}
           Spacer(Modifier.height(16.dp))}}}}}
           @Composable fun AboutGuideDialog(onClose:()->Unit){
           AlertDialog(onDismissRequest=onClose,confirmButton={Button(onClick=onClose){Text("Close")}},title={Row(verticalAlignment=Alignment.CenterVertically){Text("PowerMind Scientific & Esoteric Guide",fontSize=14.sp,fontWeight=FontWeight.Bold,color=Color(0xFF38BDF8))}},text={
           Column(Modifier.fillMaxWidth().height(420.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(10.dp)){
-          Text("1. Lock Screen Operation",fontWeight=FontWeight.Bold,fontSize=12.sp,color=Color(0xFFFACC15))
-          Text("Using FLAG_SHOW_WHEN_LOCKED, the floating subliminals flash over your lock screen. Every time your phone wakes up, commands imprint directly into subconscious memory without unlocking.",fontSize=11.sp,color=Color.LightGray)
-          Text("2. Interchangeable Upright & Horizontal Red Sigils",fontWeight=FontWeight.Bold,fontSize=12.sp,color=Color(0xFFFACC15))
+          Text("1. Cross-Modal Audio-Visual Synchronization",fontWeight=FontWeight.Bold,fontSize=12.sp,color=Color(0xFFFACC15))
+          Text("Flashing the vowel-stripped mirrored red sigils while simultaneously injecting sub-audible speech (at 12% volume) locks the visual cortex and auditory Wernicke's area together. The brain uses the whispered sound to automatically fill in the missing vowels of the sigil.",fontSize=11.sp,color=Color.LightGray)
+          Text("2. Lock Screen Subliminal Operation",fontWeight=FontWeight.Bold,fontSize=12.sp,color=Color(0xFFFACC15))
+          Text("Using FLAG_SHOW_WHEN_LOCKED, the floating subliminals flash over your lock screen. Every time your phone wakes up, affirmations imprint without needing to unlock.",fontSize=11.sp,color=Color.LightGray)
+          Text("3. Addiction De-Programming",fontWeight=FontWeight.Bold,fontSize=12.sp,color=Color(0xFFFACC15))
+          Text("Permanently includes direct addiction-breaking directives ('I WILL QUIT COCAINE', 'NO MORE COCAINE') to rewrite dopamine reward loops at the unconscious level.",fontSize=11.sp,color=Color.LightGray)
+          Text("4. Interchangeable Upright & Horizontal Red Sigils",fontWeight=FontWeight.Bold,fontSize=12.sp,color=Color(0xFFFACC15))
           Text("Flashes alternate between the vertical upright red-mirrored box (Page 26, spatial decoding) and the horizontal mirrored red-sigil box (horizontal ocular saccade). This stimulates both reading planes interchangeably without visual clutter.",fontSize=11.sp,color=Color.LightGray)
-          Text("3. Addiction & Habit De-Programming",fontWeight=FontWeight.Bold,fontSize=12.sp,color=Color(0xFFFACC15))
-          Text("Includes permanent direct-instruction commands ('I WILL QUIT COCAINE', 'NO MORE COCAINE') stripped of vowels to overwrite unconscious behavioral cravings at the neural receptor level.",fontSize=11.sp,color=Color.LightGray)
-          Text("4. 400 Billion to 2,000 Bits Reality Filter",fontWeight=FontWeight.Bold,fontSize=12.sp,color=Color(0xFFFACC15))
-          Text("The subconscious processes 400 billion bits/sec while the conscious mind receives only 2,000. Flashing at 3% contrast / 10ms bypasses conscious rationalization and implants directly into long-term memory.",fontSize=11.sp,color=Color.LightGray)
-          Text("5. Page 28 Dual Peripheral Pillar Gateways",fontWeight=FontWeight.Bold,fontSize=12.sp,color=Color(0xFFFACC15))
-          Text("Left and right screen borders are flanked by continuous vertical pillars of mirrored red sigil boxes, targeting peripheral retinal rods.",fontSize=11.sp,color=Color.LightGray)
-          Text("6. 528Hz DNA + 136.1Hz Cosmic OM Audio",fontWeight=FontWeight.Bold,fontSize=12.sp,color=Color(0xFFFACC15))
-          Text("Combines 136.1Hz OM drone with 528Hz (left) and 534Hz (right), generating a 6.0Hz Theta binaural beat to induce auto-suggestive somnambulism.",fontSize=11.sp,color=Color.LightGray)
+          Text("5. 528Hz DNA + 136.1Hz Cosmic OM Audio",fontWeight=FontWeight.Bold,fontSize=12.sp,color=Color(0xFFFACC15))
+          Text("Pure stereo sound combines 136.1Hz OM drone with 528Hz (left) and 534Hz (right), generating a 6.0Hz Theta binaural beat to induce auto-suggestive somnambulism.",fontSize=11.sp,color=Color.LightGray)
           }})}
-          @Composable fun SacredVideoSession(phrases:List<String>,interval:Long,duration:Long,contrast:Float,activeColorInts:IntArray,fSize:Float,activeFontIndices:IntArray,fonts:List<Pair<FontFamily,String>>,jitter:Boolean,pyramidFocal:Boolean,dualPillars:Boolean,altSigils:Boolean,onClose:()->Unit){
+          @Composable fun SacredVideoSession(phrases:List<String>,interval:Long,duration:Long,contrast:Float,activeColorInts:IntArray,fSize:Float,activeFontIndices:IntArray,fonts:List<Pair<FontFamily,String>>,jitter:Boolean,pyramidFocal:Boolean,dualPillars:Boolean,altSigils:Boolean,audioSync:Boolean,audioVol:Float,onClose:()->Unit){
+          val ctx=LocalContext.current
           var text by remember{mutableStateOf("")};var vis by remember{mutableStateOf(false)};var curCol by remember{mutableStateOf(Color.White)};var curFnt by remember{mutableStateOf(fonts.first().first)};var timeLeft by remember{mutableStateOf(300)};var isUpright by remember{mutableStateOf(true)}
+          val tts=remember{var e:TextToSpeech?=null;e=TextToSpeech(ctx){s->if(s==TextToSpeech.SUCCESS){e?.setSpeechRate(1.9f);e?.setPitch(0.95f)}};e}
+          DisposableEffect(Unit){onDispose{tts?.stop();tts?.shutdown()}}
           LaunchedEffect(Unit){while(timeLeft>0){delay(1000L);timeLeft--};onClose()}
-          LaunchedEffect(phrases,interval,duration,jitter){while(true){val wait=if(jitter)kotlin.random.Random.nextLong((interval*0.85).toLong().coerceAtLeast(50L),(interval*1.15).toLong()) else interval;delay(wait);text=phrases.random();isUpright=!isUpright;val cInt=if(activeColorInts.isNotEmpty())activeColorInts.random() else android.graphics.Color.WHITE;curCol=Color(cInt);val fIdx=if(activeFontIndices.isNotEmpty())activeFontIndices.random() else 0;curFnt=fonts[fIdx.coerceIn(0,fonts.lastIndex)].first;vis=true;delay(duration);vis=false}}
+          LaunchedEffect(phrases,interval,duration,jitter){while(true){val wait=if(jitter)kotlin.random.Random.nextLong((interval*0.85).toLong().coerceAtLeast(50L),(interval*1.15).toLong()) else interval;delay(wait);text=phrases.random();isUpright=!isUpright;val cInt=if(activeColorInts.isNotEmpty())activeColorInts.random() else android.graphics.Color.WHITE;curCol=Color(cInt);val fIdx=if(activeFontIndices.isNotEmpty())activeFontIndices.random() else 0;curFnt=fonts[fIdx.coerceIn(0,fonts.lastIndex)].first
+          if(audioSync){val b=Bundle().apply{putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME,audioVol)};tts?.speak(text,TextToSpeech.QUEUE_FLUSH,b,"sub_tts")}
+          vis=true;delay(duration);vis=false}}
           val rot by rememberInfiniteTransition(label="").animateFloat(0f,360f,infiniteRepeatable(tween(24000,easing=LinearEasing)),label="")
           Box(Modifier.fillMaxSize().background(Color.Black)){
           Canvas(Modifier.fillMaxSize().rotate(rot)){
