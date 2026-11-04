@@ -21,13 +21,14 @@ jobs:
           echo 'plugins{id("com.android.application") version "8.7.2" apply false;id("org.jetbrains.kotlin.android") version "2.0.21" apply false;id("org.jetbrains.kotlin.plugin.compose") version "2.0.21" apply false}' > build.gradle.kts
           cat << 'EOF' > app/build.gradle.kts
           plugins{id("com.android.application");id("org.jetbrains.kotlin.android");id("org.jetbrains.kotlin.plugin.compose")}
-          android{namespace="com.powermind.subliminal";compileSdk=34;defaultConfig{applicationId="com.powermind.subliminal.tv";minSdk=26;targetSdk=34;versionCode=50;versionName="1.0-TV"};buildTypes{release{isMinifyEnabled=false}};compileOptions{sourceCompatibility=JavaVersion.VERSION_17;targetCompatibility=JavaVersion.VERSION_17};kotlinOptions{jvmTarget="17";freeCompilerArgs+=listOf("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")};buildFeatures{compose=true};packaging{resources{excludes+="/META-INF/{AL2.0,LGPL2.1}"};jniLibs{useLegacyPackaging=true;keepDebugSymbols+="**/*.so"}}}
+          android{namespace="com.powermind.subliminal";compileSdk=34;defaultConfig{applicationId="com.powermind.subliminal.tv";minSdk=26;targetSdk=34;versionCode=55;versionName="2.0-TV"};buildTypes{release{isMinifyEnabled=false}};compileOptions{sourceCompatibility=JavaVersion.VERSION_17;targetCompatibility=JavaVersion.VERSION_17};kotlinOptions{jvmTarget="17";freeCompilerArgs+=listOf("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")};buildFeatures{compose=true};packaging{resources{excludes+="/META-INF/{AL2.0,LGPL2.1}"};jniLibs{useLegacyPackaging=true;keepDebugSymbols+="**/*.so"}}}
           dependencies{implementation("androidx.core:core-ktx:1.13.1");implementation("androidx.activity:activity-compose:1.9.3");implementation(platform("androidx.compose:compose-bom:2024.10.00"));implementation("androidx.compose.ui:ui");implementation("androidx.compose.material3:material3")}
           EOF
           cat << 'EOF' > app/src/main/res/drawable/ic_launcher.xml
           <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
           <path android:fillColor="#070A12" android:pathData="M0,0h108v108h-108z"/>
           <path android:fillColor="#00E5FF" android:strokeWidth="1.5" android:strokeColor="#38BDF8" android:pathData="M16,10 Q24,25 16,40 T16,70 T16,100 M92,10 Q84,25 92,40 T92,70 T92,100"/>
+          <path android:fillColor="#A855F7" android:strokeWidth="1.5" android:strokeColor="#C084FC" android:pathData="M22,10 Q14,25 22,40 T22,70 T22,100 M86,10 Q94,25 86,40 T86,70 T86,100"/>
           <path android:fillColor="#38BDF8" android:pathData="M54,20 C40,20 32,32 32,48 C32,64 42,78 54,88 C66,78 76,64 76,48 C76,32 68,20 54,20 Z"/>
           <path android:strokeWidth="1.2" android:strokeColor="#FFD700" android:pathData="M54,32 L54,62 M39,47 L69,47"/>
           <path android:fillColor="#FACC15" android:pathData="M54,47m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0"/>
@@ -54,79 +55,99 @@ jobs:
           package com.powermind.subliminal
           import android.content.*;import android.media.*;import android.os.*;import android.speech.tts.TextToSpeech;import android.view.WindowManager;import androidx.activity.ComponentActivity;import androidx.activity.compose.setContent
           import androidx.compose.animation.core.*;import androidx.compose.foundation.*;import androidx.compose.foundation.interaction.*;import androidx.compose.foundation.layout.*;import androidx.compose.foundation.lazy.LazyColumn;import androidx.compose.foundation.shape.RoundedCornerShape;import androidx.compose.material3.*;import androidx.compose.runtime.*;import androidx.compose.ui.*;import androidx.compose.ui.draw.*;import androidx.compose.ui.focus.*;import androidx.compose.ui.geometry.Offset;import androidx.compose.ui.graphics.*;import androidx.compose.ui.graphics.drawscope.Stroke;import androidx.compose.ui.platform.LocalContext;import androidx.compose.ui.text.font.*;import androidx.compose.ui.text.style.*;import androidx.compose.ui.unit.*;import kotlinx.coroutines.delay;import kotlin.concurrent.thread;import kotlin.math.*
-          object AudioTrackEngine{private var t:AudioTrack?=null;@Volatile private var p=false;fun start(){stop();p=true;thread{val sr=44100;val b=AudioTrack.getMinBufferSize(sr,AudioFormat.CHANNEL_OUT_STEREO,AudioFormat.ENCODING_PCM_16BIT);t=AudioTrack.Builder().setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build()).setAudioFormat(AudioFormat.Builder().setSampleRate(sr).setChannelMask(AudioFormat.CHANNEL_OUT_STEREO).setEncoding(AudioFormat.ENCODING_PCM_16BIT).build()).setBufferSizeInBytes(b).setTransferMode(AudioTrack.MODE_STREAM).build();t?.play();val buf=ShortArray(b);var aL=0.0;var aR=0.0;var aOM=0.0;val fL=528.0;val fR=534.0;val fOM=136.1;while(p){var i=0;while(i<buf.size-1){val om=sin(aOM)*3500.0;buf[i]=((sin(aL)*4800.0)+om).toInt().coerceIn(-32767,32767).toShort();buf[i+1]=((sin(aR)*4800.0)+om).toInt().coerceIn(-32767,32767).toShort();aL+=2.0*Math.PI*fL/sr;aR+=2.0*Math.PI*fR/sr;aOM+=2.0*Math.PI*fOM/sr;i+=2};t?.write(buf,0,buf.size)};try{t?.stop();t?.release()}catch(e:Exception){}}};fun stop(){p=false}}
+          object AudioTrackEngine{private var t:AudioTrack?=null;@Volatile private var p=false;fun start(){stop();p=true;thread{val sr=44100;val b=AudioTrack.getMinBufferSize(sr,AudioFormat.CHANNEL_OUT_STEREO,AudioFormat.ENCODING_PCM_16BIT);t=AudioTrack.Builder().setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build()).setAudioFormat(AudioFormat.Builder().setSampleRate(sr).setChannelMask(AudioFormat.CHANNEL_OUT_STEREO).setEncoding(AudioFormat.ENCODING_PCM_16BIT).build()).setBufferSizeInBytes(b).setTransferMode(AudioTrack.MODE_STREAM).build();t?.play();val buf=ShortArray(b);var aL=0.0;var aR=0.0;var aOM=0.0;val fL=528.0;val fR=534.0;val fOM=136.1;while(p){var i=0;while(i<buf.size-1){val om=sin(aOM)*3500.0;buf[i]=((sin(aL)*4800.0)+om).toInt().coerceIn(-32767,32767).toShort();buf[i+1]=((sin(aR)*4800.0)+om).toInt().coerceIn(-32767,32767).toShort();aL+=2.0*Math.PI*fL/sr;aR+=2.0*Math.PI*fR/sr;aOM+=2.0*Math.PI*fOM/sr;i+=2};t?.write(buf,0,buf.size)};try{t?.stop();t?.release()}catch(e:Exception){}}};fun stop(){p=false;try{t?.stop();t?.release();t=null}catch(e:Exception){}}}
           class MainActivity:ComponentActivity(){override fun onCreate(s:Bundle?){super.onCreate(s);window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);setContent{MaterialTheme(colorScheme=darkColorScheme()){FireTvApp()}}}}
           @Composable fun FireTvApp(){val ctx=LocalContext.current
-          val categories=remember{listOf("01. De-Program" to mutableStateListOf("MUST SWITCH OFF THE TV","MUST STAY FOCUSED","CREATE MY REALITY","I WILL QUIT COCAINE","I WON'T DO COCAINE EVER AGAIN","I WILL NOT DO COCAINE AGAIN","NO MORE COCAINE","I WILL NEVER DO COKE AGAIN"),"02. Creative Mindset" to mutableStateListOf("BE SUCCESSFUL","ACHIEVE MY GOALS","BE RICH","TURN DREAMS INTO REALITY","MONEY MAGNET"),"03. The £100,000 goal" to mutableStateListOf("WILL MAKE £100,000 IN TWELVE MONTHS","FOR THE SERVICES OF MAN","MULTIPLE SOURCES OF INCOME","MONEY MAGNET"),"04. The £500,000 goal" to mutableStateListOf("WILL MAKE £500,000 IN TWELVE MONTHS","INFINITE SUPPLY","SUPPLY IS WITHOUT LIMITS"),"05. The £1,000,000 goal" to mutableStateListOf("WILL MAKE £1,000,000 IN TWELVE MONTHS","EVERYTHING I TOUCH TURNS TO GOLD","HAVE A MILLIONAIRE MINDSET"),"06. Connect to Infinite Intelligence" to mutableStateListOf("COMMUNICATE WITH INFINITE INTELLIGENCE","LOVE MY PINEAL GLAND","MY THOUGHTS COME FROM THE ETHER"),"07. Healthy mind" to mutableStateListOf("HEALTHY","FEEL AND LOOK YOUNG","HEALTHY MIND HEALTHY BODY","PREVENTION IS THE BEST CURE"),"08. De-Stress" to mutableStateListOf("CALM AND RELAXED","MEDITATION","CLEAR MY MIND","HAPPY AND CONTENT"),"09. Self Confidence" to mutableStateListOf("SELF CONFIDENT","SET MY GOALS HIGH","A WINNER","TRUST ONLY YOURSELF"))}
-          val checkedCats=remember{mutableStateMapOf<Int,Boolean>().apply{for(i in 0..8)put(i,true)}}
+          val phrases=remember{mutableStateListOf("MUST SWITCH OFF THE TV","MUST STAY FOCUSED","CREATE MY REALITY","I WILL QUIT COCAINE","I WON'T DO COCAINE EVER AGAIN","I WILL NOT DO COCAINE AGAIN","NO MORE COCAINE","I WILL NEVER DO COKE AGAIN","BE SUCCESSFUL","ACHIEVE MY GOALS","BE RICH","TURN DREAMS INTO REALITY","MONEY MAGNET","WILL MAKE £100,000 IN TWELVE MONTHS","WILL MAKE £500,000 IN TWELVE MONTHS","WILL MAKE £1,000,000 IN TWELVE MONTHS","INFINITE SUPPLY","SUPPLY IS WITHOUT LIMITS","EVERYTHING I TOUCH TURNS TO GOLD","HAVE A MILLIONAIRE MINDSET","COMMUNICATE WITH INFINITE INTELLIGENCE","LOVE MY PINEAL GLAND","MY THOUGHTS COME FROM THE ETHER","HEALTHY","FEEL AND LOOK YOUNG","HEALTHY MIND HEALTHY BODY","PREVENTION IS THE BEST CURE","CALM AND RELAXED","MEDITATION","CLEAR MY MIND","HAPPY AND CONTENT","SELF CONFIDENT","SET MY GOALS HIGH","A WINNER","TRUST ONLY YOURSELF")}
           val selModes=remember{mutableStateMapOf(0 to true,1 to false,2 to true,3 to false)}
-          var contrast by remember{mutableStateOf(0.04f)};var musicOn by remember{mutableStateOf(true)};var intervalSec by remember{mutableStateOf(0.4f)};var durationMs by remember{mutableStateOf(12f)};var fontSize by remember{mutableStateOf(26f)}
-          var altSigilMode by remember{mutableStateOf(true)};var jitterMode by remember{mutableStateOf(true)};var pyramidFocal by remember{mutableStateOf(true)};var dualPillars by remember{mutableStateOf(true)};var runeMode by remember{mutableStateOf(true)};var audioSync by remember{mutableStateOf(true)}
+          var masterAudioOn by remember{mutableStateOf(false)}
+          var contrast by remember{mutableStateOf(0.04f)};var intervalSec by remember{mutableStateOf(0.4f)};var durationMs by remember{mutableStateOf(12f)};var fontSize by remember{mutableStateOf(26f)}
+          var altSigilMode by remember{mutableStateOf(true)};var jitterMode by remember{mutableStateOf(true)};var pyramidFocal by remember{mutableStateOf(true)};var dualPillars by remember{mutableStateOf(true)};var runeMode by remember{mutableStateOf(true)};var visionBoardOn by remember{mutableStateOf(true)};var maskingOn by remember{mutableStateOf(true)}
           var videoActive by remember{mutableStateOf(false)};var isInfiniteSession by remember{mutableStateOf(false)}
+          var showNewDialog by remember{mutableStateOf(false)};var showAbout by remember{mutableStateOf(false)};var newPhraseText by remember{mutableStateOf("")}
           val colors=listOf(Color.White to "White",Color(0xFF00E5FF) to "Cyan",Color(0xFFFFD700) to "Gold",Color(0xFF00E676) to "Green",Color(0xFFFF5252) to "Red")
           val colorInts=listOf(android.graphics.Color.WHITE,android.graphics.Color.CYAN,0xFFFFD700.toInt(),android.graphics.Color.GREEN,android.graphics.Color.RED)
           val fonts=listOf(FontFamily.Monospace to "Mono/Tahoma",FontFamily.SansSerif to "Sans",FontFamily.Serif to "Serif")
           fun transformMode(u:String,m:Int):String=when(m){0->u.replace(Regex("[AEIOU]"),"");1->u.replace(Regex("[EOU]"),"");2->{val nv=u.replace(Regex("[AEIOU\\s]"),"");val sb=StringBuilder();val s=HashSet<Char>();for(c in nv)if(c in 'A'..'Z'&&s.add(c))sb.append(c);sb.toString()};else->u}
-          val activePhrases=remember(checkedCats.toMap(),selModes.toMap()){val pool=mutableListOf<String>();checkedCats.forEach{if(it.value)pool.addAll(categories[it.key].second)};if(pool.isEmpty())pool.add("CREATE MY REALITY");val activeModes=selModes.filter{it.value}.keys;val res=mutableListOf<String>();for(p in pool){val u=p.uppercase().trim();if(activeModes.isEmpty())res.add(transformMode(u,0)) else for(m in activeModes)res.add(transformMode(u,m))};res}
+          val activePhrases=remember(phrases.size,selModes.toMap()){val activeModes=selModes.filter{it.value}.keys;val res=mutableListOf<String>();for(p in phrases){val u=p.uppercase().trim();if(activeModes.isEmpty())res.add(transformMode(u,0)) else for(m in activeModes)res.add(transformMode(u,m))};res}
+          if(showNewDialog){AlertDialog(onDismissRequest={showNewDialog=false},title={Text("Add Custom Affirmation")},text={OutlinedTextField(value=newPhraseText,onValueChange={newPhraseText=it},label={Text("Affirmation phrase")})},confirmButton={Button(onClick={if(newPhraseText.isNotBlank()){phrases.add(0,newPhraseText.trim().uppercase());newPhraseText=""};showNewDialog=false}){Text("Add")}},dismissButton={Button(onClick={showNewDialog=false}){Text("Cancel")}})}
+          if(showAbout){AboutGuideDialog{showAbout=false}}
           if(videoActive){
-          FireTvSacredSession(activePhrases,(intervalSec*1000).toLong(),durationMs.toLong(),contrast,colorInts,fontSize,fonts,jitterMode,pyramidFocal,dualPillars,altSigilMode,runeMode,audioSync,isInfiniteSession){AudioTrackEngine.stop();videoActive=false}
+          FireTvSacredSession(activePhrases,(intervalSec*1000).toLong(),durationMs.toLong(),contrast,colorInts,fontSize,fonts,jitterMode,pyramidFocal,dualPillars,altSigilMode,runeMode,masterAudioOn,visionBoardOn,maskingOn,isInfiniteSession){AudioTrackEngine.stop();videoActive=false}
           }else{
-          Scaffold(topBar={Surface(color=Color(0xFF0F172A)){Row(Modifier.fillMaxWidth().padding(horizontal=24.dp,vertical=10.dp),verticalAlignment=Alignment.CenterVertically){Text("POWER MIND SUBLIMINAL — FIRE TV CUBE EDITION",fontWeight=FontWeight.Bold,color=Color.White,fontSize=16.sp);Spacer(Modifier.weight(1f));Text("D-Pad Remote Active",color=Color(0xFF38BDF8),fontSize=12.sp)}}}){pad->
+          Scaffold(topBar={Surface(color=Color(0xFF0F172A)){Row(Modifier.fillMaxWidth().padding(horizontal=24.dp,vertical=10.dp),verticalAlignment=Alignment.CenterVertically){Text("POWER MIND SUBLIMINAL — FIRE TV CUBE",fontWeight=FontWeight.Bold,color=Color.White,fontSize=16.sp);Spacer(Modifier.width(16.dp));Text("All Programs (${phrases.size} Affirmations)",color=Color(0xFF38BDF8),fontSize=12.sp);Spacer(Modifier.weight(1f));Button(onClick={showNewDialog=true},contentPadding=PaddingValues(horizontal=10.dp,vertical=2.dp),modifier=Modifier.height(30.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF0284C7))){Text("+ New Phrase",fontSize=11.sp)};Spacer(Modifier.width(8.dp));Button(onClick={showAbout=true},contentPadding=PaddingValues(horizontal=10.dp,vertical=2.dp),modifier=Modifier.height(30.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF475569))){Text("ℹ️ Guide",fontSize=11.sp)}}}}){pad->
           Row(Modifier.fillMaxSize().background(Color(0xFF070A12)).padding(pad).padding(16.dp),horizontalArrangement=Arrangement.spacedBy(16.dp)){
           Card(modifier=Modifier.weight(1f).fillMaxHeight(),colors=CardDefaults.cardColors(containerColor=Color(0xFF111827))){Column(Modifier.padding(14.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(8.dp)){
-          Text("SELECT PROGRAMS (D-PAD CLICK)",fontWeight=FontWeight.Bold,fontSize=13.sp,color=Color(0xFFFACC15))
-          categories.forEachIndexed{i,pair->val chk=checkedCats[i]?:true;TvClickableRow(checked=chk,label="${pair.first} (${pair.second.size})"){checkedCats[i]=!chk}}
-          Spacer(Modifier.height(4.dp))
-          Text("SUB-CONSCIOUS CODING MODES",fontWeight=FontWeight.Bold,fontSize=13.sp,color=Color(0xFFFACC15))
-          TvClickableRow(checked=selModes[0]?:false,label="All Vowels Removed"){selModes[0]=!(selModes[0]?:false)}
-          TvClickableRow(checked=selModes[1]?:false,label="Keep A & I (Page 24)"){selModes[1]=!(selModes[1]?:false)}
-          TvClickableRow(checked=selModes[2]?:false,label="Sigil Magic Auto (Page 25)"){selModes[2]=!(selModes[2]?:false)}
+          Text("SUB-CONSCIOUS ENGINES",fontWeight=FontWeight.Bold,fontSize=13.sp,color=Color(0xFFFACC15))
+          TvClickableRow(checked=selModes[0]?:false,label="All Vowels Removed ([AEIOU] stripped)"){selModes[0]=!(selModes[0]?:false)}
+          TvClickableRow(checked=selModes[1]?:false,label="Keep A & I (Page 24 rule)"){selModes[1]=!(selModes[1]?:false)}
+          TvClickableRow(checked=selModes[2]?:false,label="Sigil Magic Auto (Deduplicated, Page 25)"){selModes[2]=!(selModes[2]?:false)}
           TvClickableRow(checked=selModes[3]?:false,label="Raw Affirmations"){selModes[3]=!(selModes[3]?:false)}
-          }}
-          Card(modifier=Modifier.weight(1.1f).fillMaxHeight(),colors=CardDefaults.cardColors(containerColor=Color(0xFF111827))){Column(Modifier.padding(14.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(8.dp)){
-          Text("ESOTERIC GEOMETRY & REMOTE LAUNCH",fontWeight=FontWeight.Bold,fontSize=13.sp,color=Color(0xFF38BDF8))
-          Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){
-          Button(onClick={isInfiniteSession=false;videoActive=true;if(musicOn)AudioTrackEngine.start()},modifier=Modifier.weight(1f).height(46.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF0284C7))){Text("▶ 5-MIN PROTOCOL",fontWeight=FontWeight.Bold,fontSize=11.sp)}
-          Button(onClick={isInfiniteSession=true;videoActive=true;if(musicOn)AudioTrackEngine.start()},modifier=Modifier.weight(1f).height(46.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF16A34A))){Text("♾️ CONTINUOUS AMBIENT",fontWeight=FontWeight.Bold,fontSize=11.sp)}}
-          Button(onClick={intervalSec=0.4f;durationMs=10f;contrast=0.03f;jitterMode=true;altSigilMode=true;pyramidFocal=true;dualPillars=true;runeMode=true;musicOn=true;audioSync=true;AudioTrackEngine.start()},modifier=Modifier.fillMaxWidth().height(42.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF7C3AED))){Text("⚡ 1-TAP RECOMMENDED MAX ABSORPTION",fontWeight=FontWeight.Bold,fontSize=11.sp)}
           Spacer(Modifier.height(4.dp))
-          Text("GEOMETRY CONTROLS",fontWeight=FontWeight.Bold,fontSize=12.sp,color=Color.White)
+          Text("ESOTERIC GEOMETRY",fontWeight=FontWeight.Bold,fontSize=13.sp,color=Color(0xFFFACC15))
           TvClickableRow(checked=altSigilMode,label="Alternating Upright & Horizontal Red Sigils (Page 26)"){altSigilMode=!altSigilMode}
-          TvClickableRow(checked=dualPillars,label="Dual Peripheral Pillar Gateways (Page 28)"){dualPillars=!dualPillars}
+          TvClickableRow(checked=dualPillars,label="Page 28 Dual Peripheral Pillar Gateways"){dualPillars=!dualPillars}
           TvClickableRow(checked=runeMode,label="Simultaneous Runic Flash (ᚠ, ᛏ, ᛋ, ᚢ, ᛉ)"){runeMode=!runeMode}
-          TvClickableRow(checked=pyramidFocal,label="Pyramid 1/3 Base Energy Elevation Plane (Page 49)"){pyramidFocal=!pyramidFocal}
-          TvClickableRow(checked=musicOn,label="Audio: 528Hz DNA + 136.1Hz Cosmic OM Drone"){musicOn=!musicOn;if(musicOn)AudioTrackEngine.start() else AudioTrackEngine.stop()}
-          TvClickableRow(checked=audioSync,label="Cross-Modal TTS Whispers (Cross-Sensory Binding)"){audioSync=!audioSync}
+          TvClickableRow(checked=visionBoardOn,label="Vision Board Flashes (£ Ingot, Estate, DNA)"){visionBoardOn=!visionBoardOn}
+          TvClickableRow(checked=pyramidFocal,label="Pyramid 1/3 Base Energy Plane (Page 49)"){pyramidFocal=!pyramidFocal}
+          TvClickableRow(checked=maskingOn,label="Tachistoscopic Metacontrast Masking"){maskingOn=!maskingOn}
           TvClickableRow(checked=jitterMode,label="Micro-Jitter Timing (Anti-Anticipation ±15%)"){jitterMode=!jitterMode}
+          }}
+          Card(modifier=Modifier.weight(1.1f).fillMaxHeight(),colors=CardDefaults.cardColors(containerColor=Color(0xFF111827))){Column(Modifier.padding(14.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(10.dp)){
+          Text("CONTROLS & SESSION LAUNCH",fontWeight=FontWeight.Bold,fontSize=13.sp,color=Color(0xFF38BDF8))
+          Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){
+          Button(onClick={isInfiniteSession=false;videoActive=true;if(masterAudioOn)AudioTrackEngine.start()},modifier=Modifier.weight(1f).height(46.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF0284C7))){Text("▶ 5-MIN PROTOCOL",fontWeight=FontWeight.Bold,fontSize=11.sp)}
+          Button(onClick={isInfiniteSession=true;videoActive=true;if(masterAudioOn)AudioTrackEngine.start()},modifier=Modifier.weight(1f).height(46.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF16A34A))){Text("♾️ CONTINUOUS AMBIENT",fontWeight=FontWeight.Bold,fontSize=11.sp)}}
+          Button(onClick={intervalSec=0.4f;durationMs=10f;contrast=0.03f;jitterMode=true;altSigilMode=true;pyramidFocal=true;dualPillars=true;runeMode=true;visionBoardOn=true;maskingOn=true;selModes.clear();selModes[0]=true;selModes[2]=true},modifier=Modifier.fillMaxWidth().height(42.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF7C3AED))){Text("⚡ 1-TAP RECOMMENDED (MAX ABSORPTION)",fontWeight=FontWeight.Bold,fontSize=11.sp)}
+          Spacer(Modifier.height(4.dp))
+          Surface(onClick={masterAudioOn=!masterAudioOn;if(masterAudioOn)AudioTrackEngine.start() else AudioTrackEngine.stop()},shape=RoundedCornerShape(6.dp),color=if(masterAudioOn)Color(0xFF065F46) else Color(0xFF7F1D1D),modifier=Modifier.fillMaxWidth()){
+          Row(Modifier.padding(horizontal=14.dp,vertical=10.dp),verticalAlignment=Alignment.CenterVertically){Text(if(masterAudioOn)"🔊 MASTER AUDIO: ON (528Hz + 136.1Hz OM Active)" else "🔇 MASTER AUDIO: OFF (MUTED)",color=Color.White,fontWeight=FontWeight.Bold,fontSize=12.sp)}}
+          Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp),verticalAlignment=Alignment.CenterVertically){
+          Text("Flash Every: ${(intervalSec*10).toInt()/10f}s",color=Color.LightGray,fontSize=12.sp,modifier=Modifier.weight(1f))
+          Button(onClick={intervalSec=(intervalSec-0.1f).coerceAtLeast(0.1f)},contentPadding=PaddingValues(0.dp),modifier=Modifier.size(36.dp)){Text("-")}
+          Button(onClick={intervalSec=(intervalSec+0.1f).coerceAtMost(2.5f)},contentPadding=PaddingValues(0.dp),modifier=Modifier.size(36.dp)){Text("+")}}
+          Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp),verticalAlignment=Alignment.CenterVertically){
+          Text("Flash Duration: ${durationMs.toInt()}ms",color=Color.LightGray,fontSize=12.sp,modifier=Modifier.weight(1f))
+          Button(onClick={durationMs=(durationMs-2f).coerceAtLeast(8f)},contentPadding=PaddingValues(0.dp),modifier=Modifier.size(36.dp)){Text("-")}
+          Button(onClick={durationMs=(durationMs+5f).coerceAtMost(200f)},contentPadding=PaddingValues(0.dp),modifier=Modifier.size(36.dp)){Text("+")}}
+          Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp),verticalAlignment=Alignment.CenterVertically){
+          Text("Contrast / Opacity: ${(contrast*100).toInt()}%",color=Color.LightGray,fontSize=12.sp,modifier=Modifier.weight(1f))
+          Button(onClick={contrast=(contrast-0.02f).coerceAtLeast(0.02f)},contentPadding=PaddingValues(0.dp),modifier=Modifier.size(36.dp)){Text("-")}
+          Button(onClick={contrast=(contrast+0.05f).coerceAtMost(1f)},contentPadding=PaddingValues(0.dp),modifier=Modifier.size(36.dp)){Text("+")}}
           }}}}}}
           @Composable fun TvClickableRow(checked:Boolean,label:String,onClick:()->Unit){
           val src=remember{MutableInteractionSource()};val foc by src.collectIsFocusedAsState()
           Surface(onClick=onClick,interactionSource=src,shape=RoundedCornerShape(6.dp),color=if(foc)Color(0xFF1E3A5F) else Color(0xFF1F2937),border=if(foc)BorderStroke(2.dp,Color(0xFF00E5FF)) else BorderStroke(1.dp,Color(0xFF374151)),modifier=Modifier.fillMaxWidth()){Row(Modifier.padding(horizontal=10.dp,vertical=6.dp),verticalAlignment=Alignment.CenterVertically){Checkbox(checked=checked,onCheckedChange=null);Spacer(Modifier.width(8.dp));Text(label,fontSize=11.sp,color=if(foc)Color.White else Color.LightGray)}}}
-          @Composable fun FireTvSacredSession(phrases:List<String>,interval:Long,duration:Long,contrast:Float,colorInts:List<Int>,fSize:Float,fonts:List<Pair<FontFamily,String>>,jitter:Boolean,pyramidFocal:Boolean,dualPillars:Boolean,altSigils:Boolean,runeOn:Boolean,audioSync:Boolean,infinite:Boolean,onClose:()->Unit){
+          @Composable fun FireTvSacredSession(phrases:List<String>,interval:Long,duration:Long,contrast:Float,colorInts:List<Int>,fSize:Float,fonts:List<Pair<FontFamily,String>>,jitter:Boolean,pyramidFocal:Boolean,dualPillars:Boolean,altSigils:Boolean,runeOn:Boolean,audioOn:Boolean,visionOn:Boolean,maskOn:Boolean,infinite:Boolean,onClose:()->Unit){
           val ctx=LocalContext.current
-          var text by remember{mutableStateOf("")};var vis by remember{mutableStateOf(false)};var curCol by remember{mutableStateOf(Color.White)};var curFnt by remember{mutableStateOf(fonts.first().first)};var timeLeft by remember{mutableStateOf(300)};var isUpright by remember{mutableStateOf(true)};var activeRune by remember{mutableStateOf("ᚠ")}
+          var text by remember{mutableStateOf("")};var vis by remember{mutableStateOf(false)};var curCol by remember{mutableStateOf(Color.White)};var curFnt by remember{mutableStateOf(fonts.first().first)};var timeLeft by remember{mutableStateOf(300)};var isUpright by remember{mutableStateOf(true)};var activeRune by remember{mutableStateOf("ᚠ")};var isMask by remember{mutableStateOf(false)};var showSymbol by remember{mutableStateOf(false)};var symbolIdx by remember{mutableStateOf(0)}
           val runes=listOf("ᚠ","ᛏ","ᛋ","ᚢ","ᛉ","ᛃ")
           val tts=remember{var e:TextToSpeech?=null;e=TextToSpeech(ctx){s->if(s==TextToSpeech.SUCCESS){e?.setSpeechRate(1.9f);e?.setPitch(0.95f)}};e}
           DisposableEffect(Unit){onDispose{tts?.stop();tts?.shutdown()}}
           LaunchedEffect(Unit){while(timeLeft>0){delay(1000L);if(!infinite)timeLeft--};if(!infinite)onClose()}
           LaunchedEffect(phrases,interval,duration,jitter){while(true){val wait=if(jitter)kotlin.random.Random.nextLong((interval*0.85).toLong().coerceAtLeast(50L),(interval*1.15).toLong()) else interval;delay(wait);text=phrases.random();activeRune=runes.random();isUpright=!isUpright;curCol=Color(colorInts.random());curFnt=fonts.random().first
-          if(audioSync){val b=Bundle().apply{putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME,0.14f)};tts?.speak(text,TextToSpeech.QUEUE_FLUSH,b,"sub_tv")}
-          vis=true;delay(duration);vis=false}}
+          if(maskOn){isMask=true;delay(8L);isMask=false}
+          if(audioOn){val b=Bundle().apply{putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME,0.14f)};tts?.speak(text,TextToSpeech.QUEUE_FLUSH,b,"sub_tv")}
+          if(visionOn&&kotlin.random.Random.nextBoolean()){symbolIdx=(symbolIdx+1)%4;showSymbol=true;delay(duration);showSymbol=false}else{vis=true;delay(duration);vis=false}
+          if(maskOn){isMask=true;delay(8L);isMask=false}}}
           val rot by rememberInfiniteTransition(label="").animateFloat(0f,360f,infiniteRepeatable(tween(24000,easing=LinearEasing)),label="")
           Box(Modifier.fillMaxSize().background(Color.Black)){
           Canvas(Modifier.fillMaxSize().rotate(rot)){
-          val c=Offset(this.size.width/2,this.size.height/2);val r=this.size.minDimension*0.42f
-          for(i in 1..4)drawCircle(Color(0xFF00E5FF).copy(alpha=0.10f),r*(i/4f),c,style=Stroke(2.dp.toPx()))
-          for(deg in 0..7){val a=Math.toRadians(deg*45.0);val x2=(c.x+r*cos(a)).toFloat();val y2=(c.y+r*sin(a)).toFloat();drawLine(Color(0xFF38BDF8).copy(alpha=0.14f),c,Offset(x2,y2),2.dp.toPx())}
+          val c=Offset(this.size.width/2,this.size.height/2);val r=this.size.minDimension*0.42f;val mAlpha=if(isMask)0.45f else 0.10f
+          for(i in 1..4)drawCircle(Color(0xFF00E5FF).copy(alpha=mAlpha),r*(i/4f),c,style=Stroke(2.dp.toPx()))
+          for(deg in 0..7){val a=Math.toRadians(deg*45.0);val x2=(c.x+r*cos(a)).toFloat();val y2=(c.y+r*sin(a)).toFloat();drawLine(Color(0xFF38BDF8).copy(alpha=if(isMask)0.35f else 0.14f),c,Offset(x2,y2),2.dp.toPx())}
           for(i in 0..5){val ringA=Math.toRadians(i*60.0);val rx=(c.x+r*0.62f*cos(ringA)).toFloat();val ry=(c.y+r*0.62f*sin(ringA)).toFloat();drawCircle(Color(0xFFFFD700).copy(alpha=0.22f),r*0.22f,Offset(rx,ry),style=Stroke(1.5.dp.toPx()))}
           val p=Path().apply{moveTo(c.x,c.y-r);lineTo(c.x+r*cos(Math.toRadians(30.0)).toFloat(),c.y+r*sin(Math.toRadians(30.0)).toFloat());lineTo(c.x-r*cos(Math.toRadians(30.0)).toFloat(),c.y+r*sin(Math.toRadians(30.0)).toFloat());close()}
-          drawPath(p,Color.White.copy(alpha=0.20f),style=Stroke(3.dp.toPx()))
-          drawCircle(Color(0xFFFFD700).copy(alpha=0.35f),10.dp.toPx(),Offset(c.x,c.y+r*0.33f))}
+          drawPath(p,Color.White.copy(alpha=if(isMask)0.40f else 0.20f),style=Stroke(3.dp.toPx()))
+          drawCircle(Color(0xFFFFD700).copy(alpha=if(isMask)0.60f else 0.35f),10.dp.toPx(),Offset(c.x,c.y+r*0.33f))}
           if(dualPillars){
           val pText=remember(text){val clean=text.filter{it in 'A'..'Z'}.take(7);if(clean.isNotEmpty())clean else "PWMRND"}
           Column(Modifier.align(Alignment.CenterStart).padding(start=16.dp).width(44.dp).background(Color(0x221E293B),RoundedCornerShape(6.dp)).border(1.dp,Color(0x4438BDF8),RoundedCornerShape(6.dp)).padding(4.dp),horizontalAlignment=Alignment.CenterHorizontally){for(ch in pText){Row{Text("$ch",color=Color.White,fontSize=12.sp,fontWeight=FontWeight.Bold);Spacer(Modifier.width(3.dp));Text("$ch",color=Color.Red,fontSize=12.sp,fontWeight=FontWeight.Bold,modifier=Modifier.scale(scaleX=-1f,scaleY=1f))}}}
-          Column(Modifier.align(Alignment.CenterEnd).padding(end=16.dp).width(44.dp).background(Color(0x221E293B),RoundedCornerShape(6.dp)).border(1.dp,Color(0x4438BDF8),RoundedCornerShape(6.dp)).padding(4.dp),horizontalAlignment=Alignment.CenterHorizontally){for(ch in pText){Row{Text("$ch",color=Color.White,fontSize=12.sp,fontWeight=FontWeight.Bold);Spacer(Modifier.width(3.dp));Text("$ch",color=Color.Red,fontSize=12.sp,fontWeight=FontWeight.Bold,modifier=Modifier.scale(scaleX=-1f,scaleY=1f))}}}
+          Column(Modifier.align(Alignment.CenterEnd).padding(end=16.dp).width(44.dp).background(Color(0x221E293B),RoundedCornerShape(6.dp)).border(1.dp,Color(0x4438BDF8),RoundedCornerShape(4.dp)).padding(4.dp),horizontalAlignment=Alignment.CenterHorizontally){for(ch in pText){Row{Text("$ch",color=Color.White,fontSize=12.sp,fontWeight=FontWeight.Bold);Spacer(Modifier.width(3.dp));Text("$ch",color=Color.Red,fontSize=12.sp,fontWeight=FontWeight.Bold,modifier=Modifier.scale(scaleX=-1f,scaleY=1f))}}}
           }
+          if(showSymbol){val focalAlignment=if(pyramidFocal)Alignment.BottomCenter else Alignment.Center;val padBottom=if(pyramidFocal)80.dp else 0.dp
+          Box(Modifier.align(focalAlignment).padding(bottom=padBottom).size(100.dp).background(Color(0x331E293B),RoundedCornerShape(14.dp)).border(1.dp,Color(0xFFFFD700),RoundedCornerShape(14.dp)),Alignment.Center){
+          Text(when(symbolIdx){0->"£";1->"🏛";2->"🧬";else->"⭐"},fontSize=52.sp,color=Color(0xFFFFD700))}}
           if(vis){
           val focalAlignment=if(pyramidFocal)Alignment.BottomCenter else Alignment.Center;val padBottom=if(pyramidFocal)90.dp else 0.dp
           val sigilLetters=text.filter{it in 'A'..'Z'}.take(6)
@@ -138,6 +159,18 @@ jobs:
           Row(Modifier.align(Alignment.TopStart).padding(20.dp),verticalAlignment=Alignment.CenterVertically){Text(if(infinite)"♾️ LIVING-ROOM AMBIENT RESONANCE" else "5-MIN TV PROTOCOL: ${timeLeft/60}:${(timeLeft%60).toString().padStart(2,'0')}",color=Color(0xFF38BDF8),fontSize=14.sp,fontWeight=FontWeight.Bold)}
           Button(onClick=onClose,modifier=Modifier.align(Alignment.TopEnd).padding(20.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFFDC2626))){Text("Exit (Remote Back)",color=Color.White,fontSize=12.sp,fontWeight=FontWeight.Bold)}
           }}
+          @Composable fun AboutGuideDialog(onClose:()->Unit){
+          AlertDialog(onDismissRequest=onClose,confirmButton={Button(onClick=onClose){Text("Close")}},title={Text("PowerMind Fire TV Operating Guide",fontSize=14.sp,fontWeight=FontWeight.Bold,color=Color(0xFF38BDF8))},text={
+          Column(Modifier.fillMaxWidth().height(360.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(8.dp)){
+          Text("1. Master Audio Switch",fontWeight=FontWeight.Bold,fontSize=12.sp,color=Color(0xFFFACC15))
+          Text("Toggle Master Audio ON or OFF directly from the right panel. When OFF, the app is 100% silent (muting both 528Hz and spoken whispers).",fontSize=11.sp,color=Color.LightGray)
+          Text("2. Unified Master Library",fontWeight=FontWeight.Bold,fontSize=12.sp,color=Color(0xFFFACC15))
+          Text("All affirmations (wealth, cocaine cessation, health, mindset) are unified into one active pool. You can add your own words using the '+ New Phrase' button.",fontSize=11.sp,color=Color.LightGray)
+          Text("3. Metacontrast Masking & Vision Priming",fontWeight=FontWeight.Bold,fontSize=12.sp,color=Color(0xFFFACC15))
+          Text("Flashes the Page 22 Mandala for 8ms before and after words to suppress conscious awareness, while single-frame visual symbols (£, Estate, DNA) trigger emotional limbic resonance.",fontSize=11.sp,color=Color.LightGray)
+          Text("4. D-Pad Remote Friendly",fontWeight=FontWeight.Bold,fontSize=12.sp,color=Color(0xFFFACC15))
+          Text("Navigate with your Fire TV remote directional buttons; active controls highlight in glowing cyan.",fontSize=11.sp,color=Color.LightGray)
+          }})}
           EOF
       - run: gradle assembleDebug --stacktrace --no-daemon
       - uses: actions/upload-artifact@v4
