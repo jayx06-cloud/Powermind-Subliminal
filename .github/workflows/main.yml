@@ -20,7 +20,7 @@ jobs:
           echo 'plugins{id("com.android.application") version "8.7.2" apply false;id("org.jetbrains.kotlin.android") version "2.0.21" apply false;id("org.jetbrains.kotlin.plugin.compose") version "2.0.21" apply false}' > build.gradle.kts
           cat << 'EOF' > app/build.gradle.kts
           plugins{id("com.android.application");id("org.jetbrains.kotlin.android");id("org.jetbrains.kotlin.plugin.compose")}
-          android{namespace="com.powermind.subliminal";compileSdk=34;defaultConfig{applicationId="com.powermind.subliminal";minSdk=26;targetSdk=34;versionCode=23;versionName="7.2"};buildTypes{release{isMinifyEnabled=false}};compileOptions{sourceCompatibility=JavaVersion.VERSION_17;targetCompatibility=JavaVersion.VERSION_17};kotlinOptions{jvmTarget="17";freeCompilerArgs+=listOf("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")};buildFeatures{compose=true};packaging{resources{excludes+="/META-INF/{AL2.0,LGPL2.1}"};jniLibs{useLegacyPackaging=true;keepDebugSymbols+="**/*.so"}}}
+          android{namespace="com.powermind.subliminal";compileSdk=34;defaultConfig{applicationId="com.powermind.subliminal";minSdk=26;targetSdk=34;versionCode=24;versionName="7.3"};buildTypes{release{isMinifyEnabled=false}};compileOptions{sourceCompatibility=JavaVersion.VERSION_17;targetCompatibility=JavaVersion.VERSION_17};kotlinOptions{jvmTarget="17";freeCompilerArgs+=listOf("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")};buildFeatures{compose=true};packaging{resources{excludes+="/META-INF/{AL2.0,LGPL2.1}"};jniLibs{useLegacyPackaging=true;keepDebugSymbols+="**/*.so"}}}
           dependencies{implementation("androidx.core:core-ktx:1.13.1");implementation("androidx.activity:activity-compose:1.9.3");implementation(platform("androidx.compose:compose-bom:2024.10.00"));implementation("androidx.compose.ui:ui");implementation("androidx.compose.material3:material3")}
           EOF
           cat << 'EOF' > app/src/main/AndroidManifest.xml
@@ -56,7 +56,8 @@ jobs:
           text=s}else{text=phrase}
           textSize=sz;setTextColor(chosenCol);typeface=when(chosenFnt){1->Typeface.SANS_SERIF;2->Typeface.SERIF;3->Typeface.create("cursive",Typeface.NORMAL);else->Typeface.MONOSPACE};alpha=alp;visibility=View.VISIBLE}
           p?.let{val m=resources.displayMetrics
-          if(rnd){val isLeft=Random.nextBoolean();val xMin=if(isLeft)-m.widthPixels/3 else m.widthPixels/5;val xMax=if(isLeft)-m.widthPixels/5 else m.widthPixels/3;it.x=Random.nextInt(xMin,xMax)}else{it.x=0}
+          if(rnd){val isLeft=Random.nextBoolean();val xMin=if(isLeft)-m.widthPixels/3 else m.widthPixels/5;val xMax=if(isLeft)-m.widthPixels/5 else m.widthPixels/3
+          it.x=Random.nextInt(xMin,xMax)}else{it.x=0}
           it.y=if(pyFoc)(m.heightPixels*0.16f).toInt() else 0
           wm?.updateViewLayout(v,it)}
           if(dur<=16){Choreographer.getInstance().postFrameCallback{v?.visibility=View.GONE;loop()}}else{h.postDelayed({v?.visibility=View.GONE;loop()},dur)}},wait)}
@@ -102,7 +103,7 @@ jobs:
           if(videoActive){
           SacredVideoSession(activePhrases,(intervalSec*1000).toLong(),durationMs.toLong(),contrast,activeColorInts,fontSize,activeFontIndices,fonts,jitterMode,pyramidFocal,dualPillars){AudioTrackEngine.stop();videoActive=false}
           }else{
-          Scaffold(topBar={Column{Surface(color=Color(0xFF0F172A)){Row(Modifier.fillMaxWidth().padding(horizontal=12.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically){Text("POWER MIND SUBLIMINAL",fontWeight=FontWeight.Bold,color=Color.White,fontSize=15.sp);Spacer(Modifier.weight(1f));Text("v7.2 Max",color=Color(0xFF38BDF8),fontSize=11.sp)}}
+          Scaffold(topBar={Column{Surface(color=Color(0xFF0F172A)){Row(Modifier.fillMaxWidth().padding(horizontal=12.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically){Text("POWER MIND SUBLIMINAL",fontWeight=FontWeight.Bold,color=Color.White,fontSize=15.sp);Spacer(Modifier.weight(1f));Text("v7.3 Master",color=Color(0xFF38BDF8),fontSize=11.sp)}}
           Row(Modifier.fillMaxWidth().background(Color(0xFF1E293B)).padding(horizontal=12.dp,vertical=4.dp),horizontalArrangement=Arrangement.spacedBy(16.dp)){Text("File",color=Color.LightGray,fontSize=12.sp);Text("Settings",color=Color.LightGray,fontSize=12.sp);Text("Help",color=Color.LightGray,fontSize=12.sp)}}}){pad->
           LazyColumn(Modifier.fillMaxSize().background(Color(0xFF090D16)).padding(pad).padding(12.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
           item{Button(onClick={applyMaxRecommended()},colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF7C3AED)),modifier=Modifier.fillMaxWidth().height(42.dp)){Text("⚡ 1-TAP RECOMMENDED (MAX ABSORPTION)",fontWeight=FontWeight.Bold,fontSize=12.sp)}}
@@ -121,7 +122,8 @@ jobs:
           val previewText=remember(activePhrases.size){val p=activePhrases.firstOrNull()?:"CRTY";val clean=p.filter{it in 'A'..'Z'}.take(5);if(clean.isNotEmpty())clean else "PWMRD"}
           Box(Modifier.fillMaxWidth().height(110.dp).background(Color(0xFF0F172A),RoundedCornerShape(8.dp)).border(1.dp,Color(0xFF38BDF8),RoundedCornerShape(8.dp)).padding(6.dp),Alignment.Center){
           Column(Modifier.fillMaxHeight().border(1.dp,Color(0xFFF87171),RoundedCornerShape(4.dp)).padding(horizontal=12.dp,vertical=2.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.SpaceEvenly){
-          for(ch in previewText){Row{Text("$ch",color=Color.White,fontSize=14.sp,fontWeight=FontWeight.Black,fontFamily=FontFamily.Monospace);Spacer(Modifier.width(8.dp));Text("$ch",color=Color.Red,fontSize=14.sp,fontWeight=FontWeight.Black,fontFamily=FontFamily.Monospace,modifier=Modifier.scale(scaleX=-1f,scaleY=1f))}}}}}
+          for(ch in previewText){Row{Text("$ch",color=Color.White,fontSize=14.sp,fontWeight=FontWeight.Black,fontFamily=FontFamily.Monospace);Spacer(Modifier.width(8.dp));Text("$ch",color=Color.Red,fontSize=14.sp,fontWeight=FontWeight.Black,fontFamily=FontFamily.Monospace,modifier=Modifier.scale(scaleX=-1f,scaleY=1f))}}
+          }}
           Text("Multi-Color (Cycles dynamically):",fontSize=11.sp,color=Color.LightGray,modifier=Modifier.padding(top=6.dp))
           Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)){colors.forEachIndexed{i,pair->FilterChip(selected=selColors[i]?:false,onClick={selColors[i]=!(selColors[i]?:false)},label={Text(pair.second,color=if(i==1)Color(0xFF90CAF9) else pair.first)})}}
           Text("Multi-Font (Cycles dynamically):",fontSize=11.sp,color=Color.LightGray,modifier=Modifier.padding(top=4.dp))
