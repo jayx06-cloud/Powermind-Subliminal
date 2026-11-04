@@ -20,7 +20,7 @@ jobs:
           echo 'plugins{id("com.android.application") version "8.7.2" apply false;id("org.jetbrains.kotlin.android") version "2.0.21" apply false;id("org.jetbrains.kotlin.plugin.compose") version "2.0.21" apply false}' > build.gradle.kts
           cat << 'EOF' > app/build.gradle.kts
           plugins{id("com.android.application");id("org.jetbrains.kotlin.android");id("org.jetbrains.kotlin.plugin.compose")}
-          android{namespace="com.powermind.subliminal";compileSdk=34;defaultConfig{applicationId="com.powermind.subliminal";minSdk=26;targetSdk=34;versionCode=13;versionName="3.0"};buildTypes{release{isMinifyEnabled=false}};compileOptions{sourceCompatibility=JavaVersion.VERSION_17;targetCompatibility=JavaVersion.VERSION_17};kotlinOptions{jvmTarget="17";freeCompilerArgs+=listOf("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")};buildFeatures{compose=true};packaging{resources{excludes+="/META-INF/{AL2.0,LGPL2.1}"};jniLibs{useLegacyPackaging=true;keepDebugSymbols+="**/*.so"}}}
+          android{namespace="com.powermind.subliminal";compileSdk=34;defaultConfig{applicationId="com.powermind.subliminal";minSdk=26;targetSdk=34;versionCode=14;versionName="3.1"};buildTypes{release{isMinifyEnabled=false}};compileOptions{sourceCompatibility=JavaVersion.VERSION_17;targetCompatibility=JavaVersion.VERSION_17};kotlinOptions{jvmTarget="17";freeCompilerArgs+=listOf("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")};buildFeatures{compose=true};packaging{resources{excludes+="/META-INF/{AL2.0,LGPL2.1}"};jniLibs{useLegacyPackaging=true;keepDebugSymbols+="**/*.so"}}}
           dependencies{implementation("androidx.core:core-ktx:1.13.1");implementation("androidx.activity:activity-compose:1.9.3");implementation(platform("androidx.compose:compose-bom:2024.10.00"));implementation("androidx.compose.ui:ui");implementation("androidx.compose.material3:material3")}
           EOF
           cat << 'EOF' > app/src/main/AndroidManifest.xml
@@ -90,7 +90,7 @@ jobs:
           if(videoActive){
           SacredVideoSession(activePhrases,(intervalSec*1000).toLong(),durationMs.toLong(),contrast,colors[colIdx].first,fontSize,fonts[fontIdx].first){AudioTrackEngine.stop();videoActive=false}
           }else{
-          Scaffold(topBar={Column{Surface(color=Color(0xFF0F172A)){Row(Modifier.fillMaxWidth().padding(horizontal=12.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically){Text("POWER MIND SUBLIMINAL",fontWeight=FontWeight.Bold,color=Color.White,fontSize=15.sp);Spacer(Modifier.weight(1f));Text("v3.0 Desktop",color=Color(0xFF38BDF8),fontSize=11.sp)}}
+          Scaffold(topBar={Column{Surface(color=Color(0xFF0F172A)){Row(Modifier.fillMaxWidth().padding(horizontal=12.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically){Text("POWER MIND SUBLIMINAL",fontWeight=FontWeight.Bold,color=Color.White,fontSize=15.sp);Spacer(Modifier.weight(1f));Text("v3.1 Desktop",color=Color(0xFF38BDF8),fontSize=11.sp)}}
           Row(Modifier.fillMaxWidth().background(Color(0xFF1E293B)).padding(horizontal=12.dp,vertical=4.dp),horizontalArrangement=Arrangement.spacedBy(16.dp)){Text("File",color=Color.LightGray,fontSize=12.sp);Text("Settings",color=Color.LightGray,fontSize=12.sp);Text("Help",color=Color.LightGray,fontSize=12.sp)}}}){pad->
           LazyColumn(Modifier.fillMaxSize().background(Color(0xFF090D16)).padding(pad).padding(12.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
           item{Card(colors=CardDefaults.cardColors(containerColor=Color(0xFF131C2E))){Column(Modifier.padding(10.dp)){
@@ -102,12 +102,12 @@ jobs:
           Button(onClick={if(phrases.size>1&&selIdx in phrases.indices)phrases.removeAt(selIdx)},contentPadding=PaddingValues(horizontal=6.dp,vertical=2.dp),modifier=Modifier.height(28.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFFDC2626))){Text("Delete",fontSize=11.sp)}}
           Spacer(Modifier.height(6.dp))
           Box(Modifier.fillMaxWidth().height(130.dp).background(Color(0xFF0B111C),RoundedCornerShape(6.dp)).border(1.dp,Color(0xFF1E293B),RoundedCornerShape(6.dp))){
-          LazyColumn(Modifier.fillMaxSize().padding(4.dp)){
-          items(phrases.size){i->val isSel=selIdx==i
+          Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(4.dp)){
+          phrases.forEachIndexed{i,phrase->val isSel=selIdx==i
           Row(Modifier.fillMaxWidth().background(if(isSel)Color(0xFF1E3A5F) else Color.Transparent,RoundedCornerShape(4.dp)).clickable{selIdx=i}.padding(6.dp)){
-          Text("${i+1}. ${phrases[i]}",fontSize=11.sp,color=if(isSel)Color(0xFF38BDF8) else Color.LightGray)}}}}}}
+          Text("${i+1}. $phrase",fontSize=11.sp,color=if(isSel)Color(0xFF38BDF8) else Color.LightGray)}}}}
           if(customSigils.isNotEmpty()){Text("Custom Sigils (${customSigils.size}): "+customSigils.joinToString(", "),fontSize=11.sp,color=Color(0xFF38BDF8),modifier=Modifier.padding(top=4.dp))}
-          }}
+          }}}
           item{Card(colors=CardDefaults.cardColors(containerColor=Color(0xFF131C2E))){Column(Modifier.padding(10.dp)){
           Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){Text("Transformation & Custom Sigil",fontWeight=FontWeight.Bold,fontSize=13.sp,color=Color.White);Spacer(Modifier.weight(1f))
           Button(onClick={dialogText="";showSigilDialog=true},contentPadding=PaddingValues(horizontal=6.dp,vertical=2.dp),modifier=Modifier.height(26.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF7C3AED))){Text("+ Custom Sigil",fontSize=10.sp)}}
