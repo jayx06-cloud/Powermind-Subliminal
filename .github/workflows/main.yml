@@ -21,7 +21,7 @@ jobs:
           echo 'plugins{id("com.android.application") version "8.7.2" apply false;id("org.jetbrains.kotlin.android") version "2.0.21" apply false;id("org.jetbrains.kotlin.plugin.compose") version "2.0.21" apply false}' > build.gradle.kts
           cat << 'EOF' > app/build.gradle.kts
           plugins{id("com.android.application");id("org.jetbrains.kotlin.android");id("org.jetbrains.kotlin.plugin.compose")}
-          android{namespace="com.powermind.subliminal";compileSdk=34;defaultConfig{applicationId="com.powermind.subliminal.tv";minSdk=26;targetSdk=34;versionCode=63;versionName="3.3-TV"};buildTypes{release{isMinifyEnabled=false}};compileOptions{sourceCompatibility=JavaVersion.VERSION_17;targetCompatibility=JavaVersion.VERSION_17};kotlinOptions{jvmTarget="17";freeCompilerArgs+=listOf("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")};buildFeatures{compose=true};packaging{resources{excludes+="/META-INF/{AL2.0,LGPL2.1}"};jniLibs{useLegacyPackaging=true;keepDebugSymbols+="**/*.so"}}}
+          android{namespace="com.powermind.subliminal";compileSdk=34;defaultConfig{applicationId="com.powermind.subliminal.tv";minSdk=26;targetSdk=34;versionCode=65;versionName="3.4-TV"};buildTypes{release{isMinifyEnabled=false}};compileOptions{sourceCompatibility=JavaVersion.VERSION_17;targetCompatibility=JavaVersion.VERSION_17};kotlinOptions{jvmTarget="17";freeCompilerArgs+=listOf("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")};buildFeatures{compose=true};packaging{resources{excludes+="/META-INF/{AL2.0,LGPL2.1}"};jniLibs{useLegacyPackaging=true;keepDebugSymbols+="**/*.so"}}}
           dependencies{implementation("androidx.core:core-ktx:1.13.1");implementation("androidx.activity:activity-compose:1.9.3");implementation(platform("androidx.compose:compose-bom:2024.10.00"));implementation("androidx.compose.ui:ui");implementation("androidx.compose.material3:material3")}
           EOF
           cat << 'EOF' > app/src/main/res/drawable/ic_launcher.xml
@@ -115,8 +115,8 @@ jobs:
           }}
           Card(modifier=Modifier.weight(1f).fillMaxHeight(),colors=CardDefaults.cardColors(containerColor=Color(0xFF111827))){Column(Modifier.padding(12.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(8.dp)){
           Text("AUDIO & COMMIT",fontWeight=FontWeight.Bold,fontSize=12.sp,color=Color(0xFF38BDF8))
-          Surface(onClick={masterAudioOn=!masterAudioOn;if(!masterAudioOn)AudioTrackEngine.stop()},shape=RoundedCornerShape(6.dp),color=if(masterAudioOn)Color(0xFF065F46) else Color(0xFF7F1D1D),modifier=Modifier.fillMaxWidth()){
-          Row(Modifier.padding(horizontal=10.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically){Text(if(masterAudioOn)"🔊 MASTER AUDIO: ON (528Hz+OM)" else "🔇 MASTER AUDIO: OFF (100% MUTED)",color=Color.White,fontWeight=FontWeight.Bold,fontSize=11.sp)}}
+          Box(Modifier.fillMaxWidth().background(if(masterAudioOn)Color(0xFF065F46) else Color(0xFF7F1D1D),RoundedCornerShape(6.dp)).clickable{masterAudioOn=!masterAudioOn;if(!masterAudioOn)AudioTrackEngine.stop()}.padding(horizontal=10.dp,vertical=8.dp)){
+          Text(if(masterAudioOn)"🔊 MASTER AUDIO: ON (528Hz+OM)" else "🔇 MASTER AUDIO: OFF (100% MUTED)",color=Color.White,fontWeight=FontWeight.Bold,fontSize=11.sp)}
           TvClickableRow(checked=audioSync,label="Cross-Modal TTS Whispers"){audioSync=!audioSync}
           Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp),verticalAlignment=Alignment.CenterVertically){Text("Speed: ${(intervalSec*10).toInt()/10f}s",color=Color.LightGray,fontSize=11.sp,modifier=Modifier.weight(1f));Button(onClick={intervalSec=(intervalSec-0.1f).coerceAtLeast(0.1f)},contentPadding=PaddingValues(0.dp),modifier=Modifier.size(32.dp)){Text("-")};Button(onClick={intervalSec=(intervalSec+0.1f).coerceAtMost(2.5f)},contentPadding=PaddingValues(0.dp),modifier=Modifier.size(32.dp)){Text("+")}}
           Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp),verticalAlignment=Alignment.CenterVertically){Text("Duration: ${durationMs.toInt()}ms (Doc: 10ms)",color=Color.LightGray,fontSize=11.sp,modifier=Modifier.weight(1f));Button(onClick={durationMs=(durationMs-2f).coerceAtLeast(8f)},contentPadding=PaddingValues(0.dp),modifier=Modifier.size(32.dp)){Text("-")};Button(onClick={durationMs=(durationMs+5f).coerceAtMost(200f)},contentPadding=PaddingValues(0.dp),modifier=Modifier.size(32.dp)){Text("+")}}
@@ -127,20 +127,21 @@ jobs:
           Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)){
           Button(onClick={isInfiniteSession=false;videoActive=true;if(masterAudioOn)AudioTrackEngine.start()},modifier=Modifier.weight(1f).height(42.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF0284C7))){Text("▶ 5-MIN",fontSize=11.sp,fontWeight=FontWeight.Bold)}
           Button(onClick={isInfiniteSession=true;videoActive=true;if(masterAudioOn)AudioTrackEngine.start()},modifier=Modifier.weight(1f).height(42.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF16A34A))){Text("♾️ AMBIENT",fontSize=11.sp,fontWeight=FontWeight.Bold)}}
-          }}}}}}}}
+          }}}}}}
           @Composable fun TvClickableRow(checked:Boolean,label:String,onClick:()->Unit){
-          val src=remember{MutableInteractionSource()};val foc by src.collectIsFocusedAsState()
-          Surface(onClick=onClick,interactionSource=src,shape=RoundedCornerShape(6.dp),color=if(foc)Color(0xFF1E3A5F) else Color(0xFF1F2937),border=if(foc)BorderStroke(2.dp,Color(0xFF00E5FF)) else BorderStroke(1.dp,Color(0xFF374151)),modifier=Modifier.fillMaxWidth()){Row(Modifier.padding(horizontal=8.dp,vertical=5.dp),verticalAlignment=Alignment.CenterVertically){Checkbox(checked=checked,onCheckedChange=null);Spacer(Modifier.width(6.dp));Text(label,fontSize=10.sp,color=if(foc)Color.White else Color.LightGray)}}}
+          var isFoc by remember{mutableStateOf(false)}
+          Box(Modifier.fillMaxWidth().onFocusChanged{isFoc=it.isFocused}.background(if(isFoc)Color(0xFF1E3A5F) else Color(0xFF1F2937),RoundedCornerShape(6.dp)).border(if(isFoc)2.dp else 1.dp,if(isFoc)Color(0xFF00E5FF) else Color(0xFF374151),RoundedCornerShape(6.dp)).clickable(onClick=onClick).padding(horizontal=8.dp,vertical=5.dp)){
+          Row(verticalAlignment=Alignment.CenterVertically){Checkbox(checked=checked,onCheckedChange=null);Spacer(Modifier.width(6.dp));Text(label,fontSize=10.sp,color=if(isFoc)Color.White else Color.LightGray)}}}
           @Composable fun FireTvSacredSession(phrases:List<String>,interval:Long,duration:Long,contrast:Float,activeColors:List<Color>,fSize:Float,activeFonts:List<FontFamily>,jitter:Boolean,pyramidFocal:Boolean,dualPillars:Boolean,altSigils:Boolean,runeOn:Boolean,audioOn:Boolean,audioSync:Boolean,visionOn:Boolean,maskOn:Boolean,randomPos:Boolean,infinite:Boolean,onClose:()->Unit){
           val ctx=LocalContext.current
           var text by remember{mutableStateOf("")};var vis by remember{mutableStateOf(false)};var curCol by remember{mutableStateOf(Color.White)};var curFnt by remember{mutableStateOf(activeFonts.first())};var timeLeft by remember{mutableStateOf(300)};var isUpright by remember{mutableStateOf(true)};var activeRune by remember{mutableStateOf("ᚠ")};var isMask by remember{mutableStateOf(false)};var showSymbol by remember{mutableStateOf(false)};var symbolIdx by remember{mutableStateOf(0)}
           val runes=listOf("ᚠ","ᛏ","ᛋ","ᚢ","ᛉ","ᛃ")
-          val tts=remember{var e:TextToSpeech?=null;e=TextToSpeech(ctx){s->if(s==TextToSpeech.SUCCESS){e?.setSpeechRate(1.9f);e?.setPitch(0.95f)}};e}
-          DisposableEffect(Unit){onDispose{tts?.stop();tts?.shutdown()}}
+          var ttsInstance:TextToSpeech?=remember{null}
+          DisposableEffect(Unit){val engine=TextToSpeech(ctx){s->if(s==TextToSpeech.SUCCESS){ttsInstance?.setSpeechRate(1.9f);ttsInstance?.setPitch(0.95f)}};ttsInstance=engine;onDispose{engine.stop();engine.shutdown()}}
           LaunchedEffect(Unit){while(timeLeft>0){delay(1000L);if(!infinite)timeLeft--};if(!infinite)onClose()}
           LaunchedEffect(phrases,interval,duration,jitter){while(true){val wait=if(jitter)kotlin.random.Random.nextLong((interval*0.85).toLong().coerceAtLeast(50L),(interval*1.15).toLong()) else interval;delay(wait);text=phrases.random();activeRune=runes.random();isUpright=!isUpright;curCol=activeColors.random();curFnt=activeFonts.random()
           if(maskOn){isMask=true;delay(8L);isMask=false}
-          if(audioOn&&audioSync){val b=Bundle().apply{putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME,0.14f)};tts?.speak(text,TextToSpeech.QUEUE_FLUSH,b,"sub_tv")}
+          if(audioOn&&audioSync){val b=Bundle().apply{putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME,0.14f)};ttsInstance?.speak(text,TextToSpeech.QUEUE_FLUSH,b,"sub_tv")}
           if(visionOn&&kotlin.random.Random.nextBoolean()){symbolIdx=(symbolIdx+1)%4;showSymbol=true;delay(duration);showSymbol=false}else{vis=true;delay(duration);vis=false}
           if(maskOn){isMask=true;delay(8L);isMask=false}}}
           val rot by rememberInfiniteTransition(label="").animateFloat(0f,360f,infiniteRepeatable(tween(24000,easing=LinearEasing)),label="")
