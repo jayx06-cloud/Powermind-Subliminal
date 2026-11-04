@@ -20,7 +20,7 @@ jobs:
           echo 'plugins{id("com.android.application") version "8.7.2" apply false;id("org.jetbrains.kotlin.android") version "2.0.21" apply false;id("org.jetbrains.kotlin.plugin.compose") version "2.0.21" apply false}' > build.gradle.kts
           cat << 'EOF' > app/build.gradle.kts
           plugins{id("com.android.application");id("org.jetbrains.kotlin.android");id("org.jetbrains.kotlin.plugin.compose")}
-          android{namespace="com.powermind.subliminal";compileSdk=34;defaultConfig{applicationId="com.powermind.subliminal";minSdk=26;targetSdk=34;versionCode=11;versionName="2.5"};buildTypes{release{isMinifyEnabled=false}};compileOptions{sourceCompatibility=JavaVersion.VERSION_17;targetCompatibility=JavaVersion.VERSION_17};kotlinOptions{jvmTarget="17";freeCompilerArgs+=listOf("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")};buildFeatures{compose=true};packaging{resources{excludes+="/META-INF/{AL2.0,LGPL2.1}"};jniLibs{useLegacyPackaging=true;keepDebugSymbols+="**/*.so"}}}
+          android{namespace="com.powermind.subliminal";compileSdk=34;defaultConfig{applicationId="com.powermind.subliminal";minSdk=26;targetSdk=34;versionCode=12;versionName="2.6"};buildTypes{release{isMinifyEnabled=false}};compileOptions{sourceCompatibility=JavaVersion.VERSION_17;targetCompatibility=JavaVersion.VERSION_17};kotlinOptions{jvmTarget="17";freeCompilerArgs+=listOf("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")};buildFeatures{compose=true};packaging{resources{excludes+="/META-INF/{AL2.0,LGPL2.1}"};jniLibs{useLegacyPackaging=true;keepDebugSymbols+="**/*.so"}}}
           dependencies{implementation("androidx.core:core-ktx:1.13.1");implementation("androidx.activity:activity-compose:1.9.3");implementation(platform("androidx.compose:compose-bom:2024.10.00"));implementation("androidx.compose.ui:ui");implementation("androidx.compose.material3:material3")}
           EOF
           cat << 'EOF' > app/src/main/AndroidManifest.xml
@@ -86,7 +86,7 @@ jobs:
           if(videoActive){
           SacredVideoSession(activePhrases,(intervalSec*1000).toLong(),durationMs.toLong(),contrast,colors[colIdx].first,fontSize,fonts[fontIdx].first){AudioTrackEngine.stop();videoActive=false}
           }else{
-          Scaffold(topBar={Column{Surface(color=Color(0xFF0F172A)){Row(Modifier.fillMaxWidth().padding(horizontal=12.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically){Text("POWER MIND SUBLIMINAL",fontWeight=FontWeight.Bold,color=Color.White,fontSize=15.sp);Spacer(Modifier.weight(1f));Text("v2.5 Desktop",color=Color(0xFF38BDF8),fontSize=11.sp)}}
+          Scaffold(topBar={Column{Surface(color=Color(0xFF0F172A)){Row(Modifier.fillMaxWidth().padding(horizontal=12.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically){Text("POWER MIND SUBLIMINAL",fontWeight=FontWeight.Bold,color=Color.White,fontSize=15.sp);Spacer(Modifier.weight(1f));Text("v2.6 Desktop",color=Color(0xFF38BDF8),fontSize=11.sp)}}
           Row(Modifier.fillMaxWidth().background(Color(0xFF1E293B)).padding(horizontal=12.dp,vertical=4.dp),horizontalArrangement=Arrangement.spacedBy(16.dp)){Text("File",color=Color.LightGray,fontSize=12.sp);Text("Settings",color=Color.LightGray,fontSize=12.sp);Text("Help",color=Color.LightGray,fontSize=12.sp)}}}){pad->
           LazyColumn(Modifier.fillMaxSize().background(Color(0xFF090D16)).padding(pad).padding(12.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
           item{Card(colors=CardDefaults.cardColors(containerColor=Color(0xFF131C2E))){Column(Modifier.padding(10.dp)){
@@ -129,7 +129,7 @@ jobs:
           val it=Intent(ctx,SubliminalOverlayService::class.java).apply{putExtra("P",activePhrases.toTypedArray());putExtra("C",colorInts[colIdx]);putExtra("S",fontSize);putExtra("F",fontIdx);putExtra("I",(intervalSec*1000).toLong());putExtra("D",durationMs.toLong());putExtra("A",contrast);putExtra("RND",randomDisplay);putExtra("MIR",mirrorMode)}
           if(!overlayActive){ctx.startService(it);overlayActive=true}else{ctx.stopService(it);overlayActive=false}}},colors=ButtonDefaults.buttonColors(containerColor=if(overlayActive)Color(0xFFDC2626) else Color(0xFF16A34A)),modifier=Modifier.weight(1f).height(44.dp)){Text(if(overlayActive)"Stop" else "Apply",fontWeight=FontWeight.Bold)}}
           Spacer(Modifier.height(16.dp))}}}}}
-          @Composable fun SacredVideoSession(phrases:List<String>,interval:Long,duration:Long,contrast:Float,color:Color,size:Float,font:FontFamily,onClose:()->Unit){
+          @Composable fun SacredVideoSession(phrases:List<String>,interval:Long,duration:Long,contrast:Float,color:Color,fSize:Float,font:FontFamily,onClose:()->Unit){
           var text by remember{mutableStateOf("")};var vis by remember{mutableStateOf(false)}
           LaunchedEffect(phrases,interval,duration){while(true){delay(interval);text=phrases.random();vis=true;delay(duration);vis=false}}
           val rot by rememberInfiniteTransition(label="").animateFloat(0f,360f,infiniteRepeatable(tween(24000,easing=LinearEasing)),label="")
@@ -138,7 +138,7 @@ jobs:
           for(i in 1..4)drawCircle(Color(0xFF00E5FF).copy(alpha=0.12f),r*(i/4f),c,style=Stroke(2.dp.toPx()))
           val p=Path().apply{moveTo(c.x,c.y-r);lineTo(c.x+r*cos(Math.toRadians(30.0)).toFloat(),c.y+r*sin(Math.toRadians(30.0)).toFloat());lineTo(c.x-r*cos(Math.toRadians(30.0)).toFloat(),c.y+r*sin(Math.toRadians(30.0)).toFloat());close()}
           drawPath(p,Color.White.copy(alpha=0.25f),style=Stroke(3.dp.toPx()))}
-          if(vis)Text(text,color=color.copy(alpha=if(contrast<0.05f)0.05f else contrast),fontSize=size.sp,fontFamily=font,fontWeight=FontWeight.Bold)
+          if(vis)Text(text,color=color.copy(alpha=if(contrast<0.05f)0.05f else contrast),fontSize=fSize.sp,fontFamily=font,fontWeight=FontWeight.Bold)
           IconButton(onClick=onClose,modifier=Modifier.align(Alignment.TopEnd).padding(16.dp)){Text("✕",color=Color.White,fontSize=24.sp,fontWeight=FontWeight.Bold)}}}
           EOF
       - run: gradle assembleDebug --stacktrace --no-daemon
